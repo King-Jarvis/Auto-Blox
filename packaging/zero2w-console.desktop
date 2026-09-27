@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Auto-Blox
+GenericName=Board dashboard
+Comment=Thermal, processes, logs and a terminal for this board
+# open-console.sh reads the token file so the URL is always current.
+# A template: scripts/install.sh --desktop fills in @APPDIR@.
+Exec=@APPDIR@/scripts/open-console.sh
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Monitor;
+Keywords=dashboard;thermal;logs;console;
+StartupNotify=true

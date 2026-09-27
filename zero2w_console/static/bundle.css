@@ -1,0 +1,260 @@
+/* Auto-Blox — component styles. Every value is a token; nothing is hard-coded. */
+
+.z-widget, .z-dock, .z-stat, .z-meter, .z-gauge, .z-logs, .z-term, .z-table-wrap {
+  box-sizing: border-box;
+}
+.z-widget *, .z-dock *, .z-stat *, .z-meter *, .z-gauge *, .z-logs *, .z-term *, .z-table-wrap * {
+  box-sizing: border-box;
+}
+
+/* ---- shared ink helpers ------------------------------------------------ */
+.z-ink--ok { color: var(--ok); }
+.z-ink--warn { color: var(--warn); }
+.z-ink--serious { color: var(--serious); }
+.z-ink--critical { color: var(--critical); }
+.z-ink--idle { color: var(--ink-muted); }
+.z-key {
+  font-family: var(--font-mono);
+  font-size: 11px; line-height: 15px; font-weight: 500;
+}
+.z-readout { font-family: var(--font-mono); font-size: 20px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.z-readout-xl { font-family: var(--font-mono); font-size: 34px; line-height: 36px; font-weight: 500; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.z-empty { font-family: var(--font-ui); font-size: 13px; color: var(--ink-faint); margin: var(--space-3) 0 0; }
+
+:where(.z-widget, .z-dock) :focus-visible,
+.z-btn:focus-visible, .z-dock-item:focus-visible, .z-term-body:focus-visible, .z-th:focus-visible {
+  outline: var(--stroke-focus) solid var(--focus-ring);
+  outline-offset: var(--space-0\.5);
+}
+
+/* ---- Widget ----------------------------------------------------------- */
+.z-widget {
+  background: var(--surface-100);
+  border: var(--stroke-hairline) solid var(--hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-none);
+  display: flex; flex-direction: column;
+  min-width: 0;
+}
+.z-widget.is-focused {
+  border-color: var(--hairline-strong);
+  box-shadow: var(--shadow-widget);
+}
+.z-widget-head {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-200);
+  border-bottom: var(--stroke-hairline) solid var(--hairline);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.z-widget.is-focused .z-widget-head { box-shadow: inset 0 -2px 0 -1px var(--signal); }
+.z-widget-titles { min-width: 0; flex: 1; }
+.z-widget-title {
+  font-family: var(--font-ui); font-size: 15px; line-height: 20px; font-weight: 600;
+  color: var(--ink); margin: 0;
+}
+.z-widget-sub { color: var(--ink-muted); margin: var(--space-1) 0 0; word-break: break-all; }
+.z-widget-tools { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
+.z-widget-body { padding: var(--space-4); flex: 1; min-width: 0; }
+.z-widget-body.is-flush { padding: 0; }
+.z-widget-foot {
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--stroke-hairline) solid var(--hairline);
+  font-family: var(--font-ui); font-size: 11px; line-height: 14px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted);
+  display: flex; gap: var(--space-3); align-items: center;
+}
+
+/* ---- StatusDot -------------------------------------------------------- */
+.z-dot-row { display: inline-flex; align-items: center; gap: var(--space-1); }
+.z-dot { width: 7px; height: 7px; border-radius: var(--radius-pill); flex: none; background: var(--ink-faint); }
+.z-dot--ok { background: var(--ok); }
+.z-dot--warn { background: var(--warn); }
+.z-dot--serious { background: var(--serious); }
+.z-dot--critical { background: var(--critical); }
+.z-dot--idle { background: var(--ink-faint); }
+.z-dot.is-pulsing { animation: z-pulse 1.8s ease-in-out infinite; }
+@keyframes z-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .z-dot.is-pulsing { animation: none; } }
+.z-dot-label {
+  font-family: var(--font-ui); font-size: 11px; line-height: 14px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted);
+}
+.z-dot-label.z-key { text-transform: none; letter-spacing: 0; color: var(--ink); }
+
+/* ---- Badge ------------------------------------------------------------ */
+.z-badge {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  font-family: var(--font-ui); font-size: 10px; line-height: 13px; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 2px var(--space-1); border-radius: var(--radius-sm);
+  color: var(--ink); background: var(--surface-200);
+  border: var(--stroke-hairline) solid var(--hairline);
+}
+.z-badge--ok { background: var(--ok-wash); border-color: var(--ok); }
+.z-badge--warn { background: var(--warn-wash); border-color: var(--warn); }
+.z-badge--serious { background: var(--warn-wash); border-color: var(--serious); }
+.z-badge--critical { background: var(--critical-wash); border-color: var(--critical); }
+.z-badge-glyph { display: inline-flex; width: 10px; height: 10px; }
+
+/* ---- Button ----------------------------------------------------------- */
+.z-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1);
+  font-family: var(--font-ui); font-size: 13px; line-height: 19px; font-weight: 500;
+  padding: var(--space-1) var(--space-3); min-height: 28px;
+  border-radius: var(--radius-sm); cursor: pointer;
+  border: var(--stroke-hairline) solid var(--hairline-strong);
+  background: var(--surface-200); color: var(--ink);
+}
+.z-btn--sm { min-height: 22px; padding: 0 var(--space-2); font-size: 11px; }
+.z-btn--primary { background: var(--signal); color: var(--on-signal); border-color: var(--signal); }
+.z-btn--ghost { background: transparent; border-color: transparent; color: var(--link); }
+.z-btn--danger { background: var(--critical-wash); border-color: var(--critical); color: var(--ink); }
+.z-btn:hover:not(:disabled) { background: var(--signal-wash); }
+.z-btn--primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--signal); }
+.z-btn:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.z-btn-glyph { display: inline-flex; width: 12px; height: 12px; }
+
+/* ---- StatTile --------------------------------------------------------- */
+.z-stat { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.z-stat-label {
+  font-family: var(--font-ui); font-size: 11px; line-height: 14px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); margin: 0;
+}
+.z-stat-row { display: flex; align-items: baseline; gap: var(--space-1); min-width: 0; }
+.z-stat-unit { font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted); }
+.z-stat-meta { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.z-stat-caption { font-family: var(--font-ui); font-size: 11px; color: var(--ink-muted); }
+.z-stat-stale { font-family: var(--font-ui); font-size: 11px; color: var(--ink-faint); margin: 0; }
+
+/* ---- Sparkline -------------------------------------------------------- */
+.z-spark { display: block; overflow: visible; }
+.z-spark-line { fill: none; stroke-width: var(--stroke-mark); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.z-spark-area { opacity: 0.18; stroke: none; }
+
+/* ---- MeterBar --------------------------------------------------------- */
+.z-meter { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.z-meter-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.z-meter-label {
+  font-family: var(--font-ui); font-size: 11px; line-height: 14px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted);
+}
+.z-meter-label.z-key { text-transform: none; letter-spacing: 0; color: var(--ink); }
+.z-meter-value { font-family: var(--font-mono); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.z-meter-track {
+  height: 6px; background: var(--surface-300); border-radius: var(--radius-pill);
+  overflow: hidden; border: var(--stroke-hairline) solid var(--hairline);
+}
+.z-meter-fill {
+  height: 100%;
+  border-radius: 0 var(--stroke-cap) var(--stroke-cap) 0;
+  box-shadow: var(--space-0\.5) 0 0 0 var(--grid) inset;
+}
+.z-meter-caption { font-family: var(--font-ui); font-size: 11px; color: var(--ink-faint); margin: 0; }
+
+/* ---- ThermalGauge ----------------------------------------------------- */
+.z-gauge { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; }
+.z-gauge-svg { width: 112px; height: 92px; display: block; }
+.z-gauge-track { fill: none; stroke: var(--surface-300); stroke-width: 8; stroke-linecap: round; }
+.z-gauge-band { fill: none; stroke-width: 8; stroke-linecap: butt; }
+.z-gauge-value { fill: none; stroke-width: 8; stroke-linecap: round; }
+.z-gauge-read { display: flex; align-items: baseline; gap: 0; margin-top: calc(var(--space-6) * -1); }
+.z-gauge-temp { font-family: var(--font-mono); font-size: 20px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink); }
+.z-gauge-unit { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--ink-muted); }
+.z-gauge-zone { color: var(--ink-muted); margin-top: var(--space-2); }
+.z-gauge-note { font-family: var(--font-ui); font-size: 10px; color: var(--ink-faint); margin: 0; text-align: center; }
+
+/* ---- LogStream -------------------------------------------------------- */
+.z-logs { background: var(--surface-300); border-top: var(--stroke-hairline) solid var(--hairline); }
+.z-logs-list { list-style: none; margin: 0; padding: var(--space-2) 0; overflow-y: auto; }
+.z-log {
+  display: grid; grid-template-columns: auto auto auto 1fr; gap: var(--space-2);
+  align-items: baseline;
+  padding: 1px var(--space-3);
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 17px; font-weight: 400;
+  color: var(--ink);
+}
+.z-log:hover { background: var(--signal-wash); }
+.z-log--critical { background: var(--critical-wash); }
+.z-log--serious { background: var(--warn-wash); }
+.z-log-time { color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.z-log-level { text-transform: uppercase; font-weight: 500; letter-spacing: 0.04em; }
+.z-log--ok .z-log-level { color: var(--ok); }
+.z-log--warn .z-log-level { color: var(--warn); }
+.z-log--serious .z-log-level { color: var(--serious); }
+.z-log--critical .z-log-level { color: var(--critical); }
+.z-log--idle .z-log-level { color: var(--ink-faint); }
+.z-log-unit { color: var(--link); }
+.z-log-msg { min-width: 0; overflow-wrap: anywhere; }
+
+/* ---- Terminal --------------------------------------------------------- */
+.z-term { background: var(--surface-300); border: var(--stroke-hairline) solid var(--hairline); border-radius: var(--radius-none); }
+.z-term-body {
+  margin: 0; padding: var(--space-3);
+  font-family: var(--font-mono); font-size: 12px; line-height: 18px; font-weight: 400;
+  color: var(--ink); overflow: auto; white-space: pre-wrap; word-break: break-word;
+}
+.z-term-line { display: block; }
+.z-term-prompt { color: var(--ok); }
+.z-term-line--err .z-term-text { color: var(--critical); }
+.z-term-line--dim .z-term-text { color: var(--ink-faint); }
+.z-term-cursor { color: var(--signal); animation: z-blink 1.1s step-end infinite; }
+@keyframes z-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .z-term-cursor { animation: none; } }
+
+/* ---- ProcessTable ----------------------------------------------------- */
+.z-table-wrap { overflow-x: auto; }
+.z-table { width: 100%; border-collapse: collapse; }
+.z-th {
+  text-align: left; padding: var(--space-2) var(--space-3);
+  background: var(--surface-200);
+  font-family: var(--font-ui); font-size: 11px; line-height: 14px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted);
+  border-bottom: var(--stroke-hairline) solid var(--hairline-strong);
+  white-space: nowrap;
+}
+.z-th.is-right { text-align: right; }
+.z-th.is-grow { width: 100%; }
+.z-th.is-sorted { color: var(--link); }
+.z-th-caret { margin-left: var(--space-1); }
+.z-td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--stroke-hairline) solid var(--hairline);
+  font-family: var(--font-ui); font-size: 13px; line-height: 19px; color: var(--ink);
+  white-space: nowrap;
+}
+.z-td.z-key { font-family: var(--font-mono); font-size: 11px; line-height: 15px; }
+.z-td.is-right { text-align: right; font-variant-numeric: tabular-nums; }
+.z-tr:hover .z-td { background: var(--signal-wash); }
+.z-tr--critical .z-td { background: var(--critical-wash); }
+.z-tr:last-child .z-td { border-bottom: none; }
+
+/* ---- Dock ------------------------------------------------------------- */
+.z-dock {
+  display: flex; align-items: center; gap: var(--space-4);
+  height: var(--space-7); padding: 0 var(--space-3);
+  background: var(--surface-200);
+  border: var(--stroke-hairline) solid var(--hairline);
+  border-radius: var(--radius-md);
+}
+.z-dock-brand { display: flex; flex-direction: column; gap: 0; flex: none; padding-right: var(--space-3); border-right: var(--stroke-hairline) solid var(--hairline); }
+.z-dock-host { color: var(--ink); }
+.z-dock-addr { color: var(--ink-faint); font-size: 10px; line-height: 13px; }
+.z-dock-list { list-style: none; display: flex; align-items: center; gap: var(--space-1); margin: 0; padding: 0; flex: 1; min-width: 0; overflow-x: auto; }
+.z-dock-item {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  background: transparent; border: var(--stroke-hairline) solid transparent;
+  border-radius: var(--radius-sm); cursor: pointer;
+  padding: var(--space-1) var(--space-2); min-height: 26px;
+  font-family: var(--font-ui); font-size: 13px; line-height: 19px; font-weight: 500;
+  color: var(--ink-muted); white-space: nowrap;
+}
+.z-dock-item:hover:not(:disabled) { color: var(--ink); background: var(--signal-wash); }
+.z-dock-item.is-active { color: var(--signal); background: var(--signal-wash); border-color: var(--signal); }
+.z-dock-item:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.z-dock-glyph { display: inline-flex; width: 13px; height: 13px; }
+.z-dock-tail { display: flex; align-items: center; gap: var(--space-3); flex: none; padding-left: var(--space-3); border-left: var(--stroke-hairline) solid var(--hairline); }
+.z-dock-clock { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ---- layout helper used by previews and the dashboard ----------------- */
+.z-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-3); }

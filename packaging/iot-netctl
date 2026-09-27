@@ -1,0 +1,909 @@
+#!/usr/bin/env python3
+"""iot-netctl — bring the IoT access point up or down. Runs as root.
+
+    iot-netctl config   < network.json   validate and store the configuration
+    iot-netctl up                        start the AP, DHCP and the firewall
+    iot-netctl down                      stop all three and release the radio
+    iot-netctl firewall                  reapply the isolation rules only
+    iot-netctl radio-on                  clear the wireless soft block
+    iot-netctl radio-off                 set it, stopping the AP first
+    iot-netctl status                    JSON: what is running right now
+    iot-netctl clients                   JSON: associated stations
+    iot-netctl diagnose                  run hostapd in the foreground and say why
+    iot-netctl serve                     listen on a socket for the console
+
+Why this exists at all: the console runs as an unprivileged service user, and
+NetworkManager's polkit refuses that user the wifi actions outright
+(`enable-disable-wifi: no`). Rather than grant the console broad NM power, it
+gets one NOPASSWD verb set with no free-form arguments.
+
+    RULES THIS FILE LIVES BY
+
+    1. It takes no configuration from its command line. The only input is JSON
+       on stdin for `config`, and it is validated before it is stored.
+    2. It never imports anything from the console's repository. That repo is
+       writable by the console's user; importing from it would turn a
+       NOPASSWD entry into a root shell. The validation below is deliberately
+       duplicated from zero2w_console/iot.py for that reason.
+    3. Nothing from the configuration is ever interpolated into a shell. Every
+       command is an argv list, and every value reaching one has been through
+       the validator.
+
+Install with `sudo scripts/install.sh --iot`, which puts this file at
+/usr/local/sbin/iot-netctl and runs it as the zero2w-iotnet service.
+"""
+import glob
+import ipaddress
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+CONF_DIR = "/etc/zero2w-console"
+NET_CONFIG = os.path.join(CONF_DIR, "iot-net.json")
+HOSTAPD_CONF = os.path.join(CONF_DIR, "hostapd-iot.conf")
+DNSMASQ_CONF = os.path.join(CONF_DIR, "dnsmasq-iot.conf")
+RUN_DIR = "/run/zero2w-iot"
+HOSTAPD_PID = os.path.join(RUN_DIR, "hostapd.pid")
+DNSMASQ_PID = os.path.join(RUN_DIR, "dnsmasq.pid")
+LEASES = os.path.join(RUN_DIR, "leases")
+
+CHAIN_FWD = "Z2W_IOT_FWD"
+CHAIN_IN = "Z2W_IOT_IN"
+
+# 2.4 GHz, non-overlapping. An ESP32 cannot see anything else.
+CHANNELS = (1, 6, 11)
+CONSOLE_PORT = 8787
+# The held-open link a device dials, which is its own port because the console
+# is plain HTTP and telling the two apart would mean sniffing the first bytes. It
+# has to be named here or the isolation rule below rejects it, and a REJECT
+# reaches a board as ECONNABORTED — indistinguishable from a socket still
+# connecting.
+LINK_PORT = 8789
+
+
+# ------------------------------------------------------------- validation
+class Invalid(Exception):
+    pass
+
+
+def valid_iface(name):
+    """A real interface on this machine, named plausibly."""
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,15}", name or ""):
+        raise Invalid("interface name is not a valid one")
+    if not os.path.isdir("/sys/class/net/%s" % name):
+        raise Invalid("no such interface: %s" % name)
+    return name
+
+
+def validate(cfg):
+    """Every field, every time — on the way in and again on the way out."""
+    if not isinstance(cfg, dict):
+        raise Invalid("expected a JSON object")
+
+    iface_name = cfg.get("interface") or "wlan0"
+    wireless = os.path.isdir("/sys/class/net/%s" % iface_name) and is_wireless(iface_name)
+
+    # A wire needs no name and no passphrase: the network is the cable. Only a
+    # radio has to announce itself, so only a radio needs these.
+    ssid = cfg.get("ssid")
+    psk = cfg.get("psk")
+    channel = cfg.get("channel")
+    if wireless:
+        if not isinstance(ssid, str) or not 1 <= len(ssid.encode("utf-8")) <= 32:
+            raise Invalid("ssid must be 1-32 bytes")
+        if not re.fullmatch(r"[\x20-\x7e]+", ssid) or ssid != ssid.strip():
+            raise Invalid("ssid must be printable ASCII with no leading or trailing space")
+        if not isinstance(psk, str) or not 8 <= len(psk) <= 63:
+            raise Invalid("passphrase must be 8-63 characters (WPA2 requires it)")
+        if not re.fullmatch(r"[\x20-\x7e]+", psk):
+            raise Invalid("passphrase must be printable ASCII")
+        if channel not in CHANNELS:
+            raise Invalid("channel must be one of %s — 2.4 GHz, non-overlapping, and "
+                          "the only band an ESP32 can see" % (CHANNELS,))
+    else:
+        ssid = (ssid or "").strip() or None
+        psk = psk or None
+        channel = channel if channel in CHANNELS else None
+
+    country = cfg.get("country") or "US"
+    if not re.fullmatch(r"[A-Z]{2}", country):
+        raise Invalid("country must be a two-letter ISO code")
+
+    try:
+        net = ipaddress.ip_network(cfg.get("subnet") or "", strict=True)
+    except ValueError as exc:
+        raise Invalid("subnet: %s" % exc)
+    if net.version != 4 or not net.is_private:
+        raise Invalid("subnet must be a private IPv4 network")
+    if net.prefixlen < 16 or net.prefixlen > 29:
+        raise Invalid("subnet must be between /16 and /29")
+
+    iface = valid_iface(cfg.get("interface") or "wlan0")
+    uplink = cfg.get("uplink")
+    uplink = valid_iface(uplink) if uplink else None
+    if uplink == iface:
+        raise Invalid("the uplink cannot be the access point's own interface")
+
+    return {
+        "ssid": ssid,
+        "psk": psk,
+        "wireless": wireless,
+        "channel": int(channel) if channel else None,
+        "country": country,
+        "subnet": str(net),
+        "interface": iface,
+        "uplink": uplink,
+        "isolate": cfg.get("isolate", True) is not False,
+        "lan_access": cfg.get("lan_access", False) is True,
+    }
+
+
+def plan(cfg):
+    """Addresses derived from the subnet — never taken from the caller."""
+    net = ipaddress.ip_network(cfg["subnet"])
+    hosts = list(net.hosts())
+    if len(hosts) < 8:
+        raise Invalid("subnet is too small to hold a gateway and a DHCP pool")
+    gateway = hosts[0]
+    lo = hosts[len(hosts) // 4]
+    hi = hosts[-2]
+    return {
+        "gateway": str(gateway),
+        "prefix": net.prefixlen,
+        "netmask": str(net.netmask),
+        "dhcp_start": str(lo),
+        "dhcp_end": str(hi),
+    }
+
+
+# ------------------------------------------------------------ file writing
+def write_private(path, text):
+    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as fh:
+        fh.write(text)
+    os.chmod(tmp, 0o600)      # the passphrase is in here
+    os.replace(tmp, path)
+
+
+# --------------------------------------------------------------- the link
+def is_wireless(iface):
+    """A radio has to invent the medium; a wire already is one."""
+    return os.path.exists("/sys/class/net/%s/phy80211" % iface) or \
+        os.path.exists("/sys/class/net/%s/wireless" % iface)
+
+
+def link_candidates():
+    """Interfaces that could carry the IoT network, and what each would need.
+
+    The point of this list: on a wire, serving a network needs nothing from the
+    hardware at all — an address, a DHCP server and a route, exactly like any
+    router. On a radio, something has to send beacons and run the association
+    handshake, and that lives in the chip's firmware.
+    """
+    out = []
+    for path in sorted(glob.glob("/sys/class/net/*")):
+        iface = os.path.basename(path)
+        if iface == "lo" or iface.startswith(("docker", "veth", "tailscale", "p2p-")):
+            continue
+        wireless = is_wireless(iface)
+        entry = {
+            "interface": iface,
+            "kind": "wireless" if wireless else "wired",
+            "operstate": _read_first(os.path.join(path, "operstate")),
+            "carrier": _read_first(os.path.join(path, "carrier")) == "1",
+            "needs": "an access point (hostapd)" if wireless else "nothing but an address",
+        }
+        if wireless:
+            entry["ap_capable"] = "AP" in _iw_modes(iface)
+        out.append(entry)
+    return out
+
+
+def _read_first(path):
+    try:
+        with open(path) as fh:
+            return fh.read().strip()
+    except OSError:
+        return None
+
+
+def _iw_modes(iface):
+    phy = os.path.realpath("/sys/class/net/%s/phy80211" % iface)
+    name = os.path.basename(phy) if phy else ""
+    if not name:
+        return []
+    txt = run(["iw", "phy", name, "info"], check=False, quiet=True).stdout
+    modes, seen = [], False
+    for line in txt.splitlines():
+        line = line.strip()
+        if line.startswith("Supported interface modes"):
+            seen = True
+            continue
+        if seen:
+            if line.startswith("* "):
+                modes.append(line[2:].strip())
+            elif line and not line.startswith("*"):
+                break
+    return modes
+
+
+def hostapd_conf(cfg, p, reduced=False):
+    """The access point, as hostapd wants it.
+
+    `reduced` drops the two things a driver which does not implement regulatory
+    updates chokes on. sprdwl_ng accepts the full config, reaches
+    COUNTRY_UPDATE waiting for a confirmation it never sends, and exits.
+
+    This lived only in the installed copy at /usr/local/sbin for four days —
+    an edit made on the running system to get the AP up, never committed. The
+    repo was the older file the whole time, which means installing the repo
+    version would have taken the access point down. Anything changed here is
+    changed here first.
+    """
+    lines = ([] if reduced else ["country_code=%s" % cfg["country"]])
+    return "\n".join([
+        "# GENERATED by iot-netctl — edits are overwritten on the next `up`.",
+        "interface=%s" % cfg["interface"],
+        "driver=nl80211",
+        "ssid=%s" % cfg["ssid"],
+    ] + lines + [
+        "hw_mode=g",                       # 2.4 GHz: the only band the fleet sees
+        "channel=%d" % cfg["channel"],
+    ] + ([] if reduced else ["ieee80211n=1"]) + [
+        "wmm_enabled=1",
+        "auth_algs=1",                     # open system only; no shared-key WEP
+        "wpa=2",
+        "wpa_passphrase=%s" % cfg["psk"],
+        "wpa_key_mgmt=WPA-PSK",
+        "rsn_pairwise=CCMP",               # no TKIP
+        "ignore_broadcast_ssid=0",
+        # Stations cannot talk to each other through the AP. A compromised
+        # sensor should not be able to reach the next one.
+        "ap_isolate=%d" % (1 if cfg["isolate"] else 0),
+        "",
+    ])
+
+
+def dnsmasq_conf(cfg, p, iface=None):
+    return "\n".join([
+        "# GENERATED by iot-netctl — edits are overwritten on the next `up`.",
+        "interface=%s" % (iface or cfg["interface"]),
+        "bind-interfaces",                 # do not touch any other interface
+        "except-interface=lo",
+        "no-hosts",
+        "domain-needed",
+        "bogus-priv",
+        "dhcp-range=%s,%s,%s,12h" % (p["dhcp_start"], p["dhcp_end"], p["netmask"]),
+        "dhcp-option=3,%s" % p["gateway"],   # router
+        "dhcp-option=6,%s" % p["gateway"],   # dns
+        "dhcp-leasefile=%s" % LEASES,
+        "dhcp-authoritative",
+        "",
+    ])
+
+
+# -------------------------------------------------------------- execution
+def run(argv, check=True, quiet=False):
+    try:
+        p = subprocess.run(argv, capture_output=True, text=True)
+    except FileNotFoundError:
+        # A tool that is not installed is an answer ("no iw here"), not a
+        # crash: status and diagnose exist to say what is missing.
+        p = subprocess.CompletedProcess(argv, 127, "", "%s: not installed" % argv[0])
+    if p.returncode != 0 and check:
+        raise SystemExit("failed: %s\n%s" % (" ".join(argv), (p.stderr or p.stdout).strip()))
+    if not quiet and p.stdout.strip():
+        print(p.stdout.strip())
+    return p
+
+
+def load_config():
+    try:
+        with open(NET_CONFIG) as fh:
+            return validate(json.load(fh))
+    except FileNotFoundError:
+        raise SystemExit("no network configured yet — run `iot-netctl config` first")
+    except PermissionError:
+        raise SystemExit("cannot read %s — this has to run as root" % NET_CONFIG)
+    except (ValueError, Invalid) as exc:
+        raise SystemExit("stored configuration is not usable: %s" % exc)
+
+
+def pid_alive(path, name):
+    try:
+        with open(path) as fh:
+            pid = int(fh.read().strip())
+    except (OSError, ValueError):
+        return None
+    try:
+        with open("/proc/%d/cmdline" % pid) as fh:
+            cmd = fh.read()
+    except OSError:
+        return None
+    # Never trust a bare PID: check it is still the process we started.
+    return pid if name in cmd else None
+
+
+def firewall_up(cfg, p, iface=None):
+    """One chain per direction, so `down` can remove exactly what `up` added."""
+    ipt = shutil.which("iptables")
+    if not ipt:
+        print("iptables missing: no isolation applied", file=sys.stderr)
+        return
+    firewall_down(quiet=True)
+    subnet, wlan, uplink = cfg["subnet"], (iface or cfg["interface"]), cfg["uplink"]
+
+    run([ipt, "-N", CHAIN_IN])
+    run([ipt, "-N", CHAIN_FWD])
+    # Answers to something this host asked for. Without this, the console can
+    # ping a device but cannot fetch a camera frame from it: the reply arrives
+    # on a port no rule names and is refused.
+    run([ipt, "-A", CHAIN_IN, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED",
+         "-j", "ACCEPT"])
+    # What a device may say to this host unprompted: DHCP, DNS, the console and
+    # the link. Nothing else — the rule under this one rejects the rest, which
+    # is the whole point of the subnet being isolated.
+    for proto, port in (("udp", 67), ("udp", 53), ("tcp", 53),
+                        ("tcp", CONSOLE_PORT), ("tcp", LINK_PORT)):
+        run([ipt, "-A", CHAIN_IN, "-i", wlan, "-p", proto, "--dport", str(port), "-j", "ACCEPT"])
+    run([ipt, "-A", CHAIN_IN, "-i", wlan, "-p", "icmp", "-j", "ACCEPT"])
+    run([ipt, "-A", CHAIN_IN, "-i", wlan, "-j", "REJECT"])
+    run([ipt, "-I", "INPUT", "1", "-j", CHAIN_IN])
+
+    # Replies to connections this host or a device already made.
+    run([ipt, "-A", CHAIN_FWD, "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED",
+         "-j", "ACCEPT"])
+    if not cfg["lan_access"]:
+        # The whole point: an IoT device reaches the internet, not the LAN.
+        for private in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"):
+            if ipaddress.ip_network(subnet).subnet_of(ipaddress.ip_network(private)):
+                run([ipt, "-A", CHAIN_FWD, "-i", wlan, "-s", subnet, "-d", subnet,
+                     "-j", "ACCEPT"])
+            run([ipt, "-A", CHAIN_FWD, "-i", wlan, "-s", subnet, "-d", private,
+                 "-j", "REJECT"])
+    if uplink:
+        run([ipt, "-A", CHAIN_FWD, "-i", wlan, "-o", uplink, "-s", subnet, "-j", "ACCEPT"])
+    run([ipt, "-A", CHAIN_FWD, "-i", wlan, "-j", "REJECT"])
+    run([ipt, "-I", "FORWARD", "1", "-j", CHAIN_FWD])
+
+    if uplink:
+        run([ipt, "-t", "nat", "-A", "POSTROUTING", "-s", subnet, "-o", uplink,
+             "-j", "MASQUERADE"])
+        with open("/proc/sys/net/ipv4/ip_forward", "w") as fh:
+            fh.write("1")
+
+
+def firewall_down(quiet=False):
+    ipt = shutil.which("iptables")
+    if not ipt:
+        return
+    run([ipt, "-D", "INPUT", "-j", CHAIN_IN], check=False, quiet=True)
+    run([ipt, "-D", "FORWARD", "-j", CHAIN_FWD], check=False, quiet=True)
+    for chain in (CHAIN_IN, CHAIN_FWD):
+        run([ipt, "-F", chain], check=False, quiet=True)
+        run([ipt, "-X", chain], check=False, quiet=True)
+    # The NAT rule names its own subnet, so find and drop ours.
+    out = run([ipt, "-t", "nat", "-S", "POSTROUTING"], check=False, quiet=True).stdout
+    for line in out.splitlines():
+        if "MASQUERADE" in line and line.startswith("-A POSTROUTING"):
+            run([ipt, "-t", "nat"] + ["-D"] + line.split()[1:], check=False, quiet=True)
+
+
+def p2p_devices():
+    """Every P2P-device wdev on the system, by id."""
+    out, wdev = [], None
+    for line in run(["iw", "dev"], check=False, quiet=True).stdout.splitlines():
+        line = line.strip()
+        if line.startswith("wdev "):
+            wdev = line.split()[1]
+        elif line == "type P2P-device" and wdev:
+            out.append(wdev)
+    return out
+
+
+def release_radio(iface):
+    """Hand the radio over completely before asking it to host.
+
+    Everything else on this box that touches wifi keeps a claim on the chip:
+    NetworkManager, the system wpa_supplicant, and the P2P device that
+    supplicant creates at boot. This firmware has one bus channel to give, and
+    it asserts in bus_chn_init when a new one is opened while another claim is
+    live — so the claims go first, and come back on `down`.
+    """
+    stopped = False
+    if shutil.which("systemctl"):
+        state = run(["systemctl", "is-active", "wpa_supplicant"],
+                    check=False, quiet=True).stdout.strip()
+        if state == "active":
+            run(["systemctl", "stop", "wpa_supplicant"], check=False)
+            stopped = True
+            time.sleep(1)
+    if shutil.which("nmcli"):
+        run(["nmcli", "device", "set", iface, "managed", "no"], check=False, quiet=True)
+    for wdev in p2p_devices():
+        run(["iw", "wdev", wdev, "del"], check=False, quiet=True)
+    return stopped
+
+
+def radio_ready(cfg, mode=None):
+    """Unblock the radio, take every other claim off it, and put the interface
+    in the mode that is about to be asked of it.
+
+    A failed hostapd attempt leaves the interface in AP type. Nothing resets
+    it, so the next thing to use the radio — a scan, a station — fails for a
+    reason that has nothing to do with itself.
+    """
+    run(["rfkill", "unblock", "wifi"], check=False)
+    stopped = release_radio(cfg["interface"])
+    run(["ip", "link", "set", cfg["interface"], "down"], check=False, quiet=True)
+    if mode:
+        run(["iw", "dev", cfg["interface"], "set", "type", mode], check=False)
+    return stopped
+
+
+def do_config(raw):
+    cfg = validate(raw)
+    plan(cfg)
+    write_private(NET_CONFIG, json.dumps(cfg, indent=2) + "\n")
+    return {"ok": True, "config": dict(cfg, psk="********")}
+
+
+def cmd_config():
+    try:
+        raw = json.loads(sys.stdin.read() or "{}")
+    except ValueError as exc:
+        raise SystemExit("stdin is not JSON: %s" % exc)
+    try:
+        print(json.dumps(do_config(raw)))
+    except Invalid as exc:
+        raise SystemExit("rejected: %s" % exc)
+
+
+def cmd_up(dry_run=False):
+    """Serve the IoT network on one interface.
+
+    This is what a router does and nothing more: give the interface an address,
+    hand out leases on it, route and firewall it. On a wire that is the whole
+    job — the cable is the network. On a radio there is no medium until
+    something transmits beacons and runs the association handshake, so hostapd
+    is added underneath, and that is the only part that needs anything of the
+    hardware.
+    """
+    if dry_run:
+        raw = sys.stdin.read().strip() if not sys.stdin.isatty() else ""
+        try:
+            cfg = validate(json.loads(raw)) if raw else load_config()
+        except (ValueError, Invalid) as exc:
+            raise SystemExit("rejected: %s" % exc)
+        p = plan(cfg)
+        out = {"config": dict(cfg, psk="********" if cfg["psk"] else None), "plan": p,
+               "wireless": cfg["wireless"], "links": link_candidates(),
+               "writes": [DNSMASQ_CONF] + ([HOSTAPD_CONF] if cfg["wireless"] else [])}
+        print(json.dumps(out, indent=2))
+        if cfg["wireless"]:
+            print("\n--- %s\n%s" % (HOSTAPD_CONF,
+                                     hostapd_conf(cfg, p).replace(cfg["psk"], "********")))
+        print("--- %s\n%s" % (DNSMASQ_CONF, dnsmasq_conf(cfg, p)))
+        return
+
+    cfg = load_config()
+    p = plan(cfg)
+    iface = cfg["interface"]
+    os.makedirs(RUN_DIR, mode=0o700, exist_ok=True)
+    cmd_down(quiet=True)
+
+    if not shutil.which("dnsmasq"):
+        raise SystemExit("dnsmasq is not installed: sudo apt install dnsmasq")
+    if not os.path.isdir("/sys/class/net/%s" % iface):
+        raise SystemExit("no interface called %s" % iface)
+
+    reduced = False
+    stopped_supplicant = False
+    if cfg["wireless"]:
+        if not shutil.which("hostapd"):
+            raise SystemExit("hostapd is not installed: sudo apt install hostapd")
+        write_private(HOSTAPD_CONF, hostapd_conf(cfg, p))
+        # A station claim and an AP claim at once is what this firmware cannot
+        # do, so everything else lets go of the radio first.
+        stopped_supplicant = radio_ready(cfg, mode="managed")
+        run(["ip", "link", "set", iface, "up"], check=False, quiet=True)
+        run(["hostapd", "-B", "-P", HOSTAPD_PID, HOSTAPD_CONF], check=False)
+        # hostapd -B returns as soon as it has forked, and a driver is perfectly
+        # capable of accepting the config and then dying a second later.
+        time.sleep(2)
+        if not pid_alive(HOSTAPD_PID, "hostapd"):
+            # Try again without what sprdwl_ng chokes on before giving up.
+            write_private(HOSTAPD_CONF, hostapd_conf(cfg, p, reduced=True))
+            run(["hostapd", "-B", "-P", HOSTAPD_PID, HOSTAPD_CONF], check=False)
+            time.sleep(2)
+            reduced = True
+        if not pid_alive(HOSTAPD_PID, "hostapd"):
+            detail = hostapd_probe()
+            cmd_down(quiet=True)
+            raise SystemExit("hostapd did not stay up on %s.\n%s" % (iface, detail))
+    else:
+        # A wire needs nothing announced. If there is no cable in it yet, say
+        # so — the network will work the moment there is.
+        run(["ip", "link", "set", iface, "up"], check=False, quiet=True)
+        if _read_first("/sys/class/net/%s/carrier" % iface) != "1":
+            print("iot-netctl: %s has no cable in it yet; the network is ready "
+                  "for when it does" % iface, flush=True)
+
+    run(["ip", "addr", "flush", "dev", iface], check=False, quiet=True)
+    run(["ip", "addr", "add", "%s/%d" % (p["gateway"], p["prefix"]), "dev", iface])
+    write_private(DNSMASQ_CONF, dnsmasq_conf(cfg, p))
+    run(["dnsmasq", "--conf-file=" + DNSMASQ_CONF, "--pid-file=" + DNSMASQ_PID],
+        check=False)
+    time.sleep(1)
+    if not pid_alive(DNSMASQ_PID, "dnsmasq"):
+        cmd_down(quiet=True)
+        raise SystemExit("dnsmasq would not start on %s" % iface)
+    firewall_up(cfg, p)
+    write_private(os.path.join(CONF_DIR, "running.json"), json.dumps({
+        "interface": iface, "wireless": cfg["wireless"], "ssid": cfg["ssid"],
+        "reduced": reduced,
+        "stopped_supplicant": locals().get("stopped_supplicant", False)}) + "\n")
+    print(json.dumps({"ok": True, "interface": iface, "wireless": cfg["wireless"],
+                      "ssid": cfg["ssid"], "gateway": p["gateway"],
+                      "reduced": reduced}))
+
+
+def do_up():
+    cmd_up()
+    cfg = load_config()
+    running = _running()
+    if cfg["wireless"] and not pid_alive(HOSTAPD_PID, "hostapd"):
+        raise SystemExit("hostapd is not running after up")
+    if not pid_alive(DNSMASQ_PID, "dnsmasq"):
+        raise SystemExit("dhcp is not running after up")
+    return {"ok": True, "interface": running.get("interface") or cfg["interface"],
+            "wireless": cfg["wireless"], "ssid": cfg["ssid"],
+            "channel": cfg["channel"], "gateway": plan(cfg)["gateway"]}
+
+
+def do_down():
+    cmd_down(quiet=True)
+    return {"ok": True, "state": "down"}
+
+
+def do_firewall():
+    """Reapply the isolation rules, and nothing else.
+
+    `up` is the only thing that used to rebuild these, and it takes the whole
+    access point down and up to do it — which on this wifi chip is the operation
+    with four documented ways to fail (`docs/RADIO.md`). Changing which ports a
+    device may reach should not need any of that, and until this verb existed it
+    did: adding the link port meant bouncing the radio under two live boards.
+
+    Nothing is touched but the two chains, both of which `firewall_up` removes
+    and rebuilds itself, so running this twice is the same as running it once.
+    """
+    cfg = load_config()
+    running = _running()
+    iface = running.get("interface") or cfg["interface"]
+    firewall_up(cfg, plan(cfg), iface=iface)
+    # Whether the network was actually up is reported rather than refused on:
+    # rules naming an interface that is down are harmless, and `down` removes them.
+    return {"ok": True, "interface": iface, "up": bool(running.get("interface")),
+            "ports": [CONSOLE_PORT, LINK_PORT]}
+
+
+def cmd_down(quiet=False):
+    for path, name in ((HOSTAPD_PID, "hostapd"), (DNSMASQ_PID, "dnsmasq")):
+        pid = pid_alive(path, name)
+        if pid:
+            run(["kill", str(pid)], check=False, quiet=True)
+        if os.path.exists(path):
+            os.unlink(path)
+    firewall_down(quiet=True)
+    running = _running()
+    try:
+        cfg = load_config()
+        for iface in {cfg["interface"], running.get("interface") or ""} - {""}:
+            run(["ip", "addr", "flush", "dev", iface], check=False, quiet=True)
+            run(["ip", "link", "set", iface, "down"], check=False, quiet=True)
+        # Leave the radio as a station. Anything else and the next scan, or the
+        # next attempt at a network, fails for a reason of our making.
+        run(["iw", "dev", cfg["interface"], "set", "type", "managed"],
+            check=False, quiet=True)
+    except SystemExit:
+        pass
+    # Give NetworkManager its supplicant back if we took it.
+    if running.get("stopped_supplicant") and shutil.which("systemctl"):
+        run(["systemctl", "start", "wpa_supplicant"], check=False)
+    try:
+        os.unlink(os.path.join(CONF_DIR, "running.json"))
+    except OSError:
+        pass
+    if not quiet:
+        print(json.dumps({"ok": True, "state": "down"}))
+
+
+def do_radio(on):
+    """The wireless soft block.
+
+    The console can usually do this itself — logind gives the seat user an ACL
+    on /dev/rfkill — so this verb is the headless fallback, for when nobody is
+    logged in locally and that ACL does not exist.
+    """
+    if not on:
+        # An access point cannot outlive its radio; stop it deliberately rather
+        # than leave hostapd running against a blocked phy.
+        cmd_down(quiet=True)
+    run(["rfkill", "unblock" if on else "block", "wifi"])
+    return {"ok": True, "blocked": not on}
+
+
+def cmd_radio(on):
+    print(json.dumps(do_radio(on)))
+
+
+def hostapd_probe(seconds=8):
+    """Run hostapd in the foreground long enough to hear why it gives up.
+
+    -B hides the reason in a daemon that is already gone; this keeps it.
+    """
+    if not shutil.which("hostapd"):
+        return "hostapd is not installed"
+    try:
+        p = subprocess.run(["hostapd", "-dd", HOSTAPD_CONF],
+                           capture_output=True, text=True, timeout=seconds)
+        out = (p.stdout or "") + (p.stderr or "")
+    except subprocess.TimeoutExpired as exc:
+        # It stayed up for the whole window, which is itself the answer.
+        out = ((exc.stdout or b"").decode(errors="replace")
+               + (exc.stderr or b"").decode(errors="replace"))
+        out += "\n(it was still running after %ds — so it dies later, not at start)" % seconds
+    except OSError as exc:
+        return str(exc)
+    lines = [l for l in out.splitlines() if l.strip()]
+    # The interesting part is the end: the last thing it said before quitting.
+    return "\n".join(lines[-25:])
+
+
+def do_diagnose():
+    """Why the access point will not stay up, in the words of hostapd."""
+    return {"hostapd": hostapd_probe(), "status": do_status()}
+
+
+def cmd_diagnose():
+    print(json.dumps(do_diagnose()))
+
+
+def _running():
+    try:
+        with open(os.path.join(CONF_DIR, "running.json")) as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
+def do_status():
+    running = _running()
+    state = {
+        "hostapd": pid_alive(HOSTAPD_PID, "hostapd"),
+        "dnsmasq": pid_alive(DNSMASQ_PID, "dnsmasq"),
+        "configured": os.path.exists(NET_CONFIG),
+        "leases": [],
+        "config": None,
+        "interface": running.get("interface"),
+        "wireless": running.get("wireless"),
+        "links": link_candidates(),
+    }
+    # The stored file is 0600 root because it holds the passphrase, so the console
+    # cannot read back what it just saved. Hand it everything but that field.
+    try:
+        cfg = load_config()
+        safe = {k: v for k, v in cfg.items() if k not in ("psk",)}
+        safe.update(plan(cfg))
+        state["config"] = safe
+    except (SystemExit, Invalid, OSError):
+        state["configured"] = False
+    try:
+        with open(LEASES) as fh:
+            for line in fh:
+                bits = line.split()
+                if len(bits) >= 4:
+                    state["leases"].append({"expires": int(bits[0]), "mac": bits[1],
+                                            "ip": bits[2], "name": bits[3]})
+    except (OSError, ValueError):
+        pass
+    # A wire needs no beacons, so dhcp answering on the interface is the whole
+    # test. A radio needs hostapd alive as well.
+    if running.get("wireless"):
+        state["up"] = bool(state["hostapd"] and state["dnsmasq"])
+    else:
+        state["up"] = bool(state["dnsmasq"] and running.get("interface"))
+    return state
+
+
+def cmd_status():
+    print(json.dumps(do_status()))
+
+
+def cmd_firewall():
+    print(json.dumps(do_firewall()))
+
+
+def do_clients():
+    try:
+        cfg = load_config()
+        iface = cfg["interface"]
+    except SystemExit:
+        iface = "wlan0"
+    out = run(["iw", "dev", iface, "station", "dump"], check=False, quiet=True).stdout
+    stations, cur = [], None
+    for line in out.splitlines():
+        s = line.strip()
+        if s.startswith("Station "):
+            cur = {"mac": s.split()[1], "signal": None, "inactive_ms": None}
+            stations.append(cur)
+        elif cur and s.startswith("signal:"):
+            m = re.search(r"(-?\d+)", s)
+            cur["signal"] = int(m.group(1)) if m else None
+        elif cur and s.startswith("inactive time:"):
+            m = re.search(r"(\d+)", s)
+            cur["inactive_ms"] = int(m.group(1)) if m else None
+    return {"clients": stations}
+
+
+def cmd_clients():
+    print(json.dumps(do_clients()))
+
+
+SOCKET = "/run/zero2w-iot/ctl.sock"
+# The console user's group; the service unit sets it (scripts/install.sh).
+SOCKET_GROUP = os.environ.get("ZERO2W_IOT_GROUP", "")
+
+# What may be asked for over the socket, and whether it takes a payload.
+REMOTE = {
+    "config": lambda payload: do_config(payload or {}),
+    "up": lambda payload: do_up(),
+    "down": lambda payload: do_down(),
+    "firewall": lambda payload: do_firewall(),
+    "radio-on": lambda payload: do_radio(True),
+    "radio-off": lambda payload: do_radio(False),
+    "status": lambda payload: do_status(),
+    "diagnose": lambda payload: do_diagnose(),
+    "clients": lambda payload: do_clients(),
+}
+
+
+def cmd_serve():
+    """Listen on a unix socket instead of being run through sudo.
+
+    The console runs under NoNewPrivileges=yes, which makes sudo impossible by
+    design — and that is worth keeping, because the console also exposes a
+    shell. So the privileged half runs as its own root service and the console
+    asks it for one of seven verbs over a socket only its group can open.
+    """
+    import grp
+    import socket as socketmod
+    import struct
+
+    os.makedirs(os.path.dirname(SOCKET), mode=0o750, exist_ok=True)
+    try:
+        os.unlink(SOCKET)
+    except FileNotFoundError:
+        pass
+    if not SOCKET_GROUP:
+        raise SystemExit("set ZERO2W_IOT_GROUP to the console user's group "
+                         "(the service unit scripts/install.sh writes does)")
+    srv = socketmod.socket(socketmod.AF_UNIX, socketmod.SOCK_STREAM)
+    srv.bind(SOCKET)
+    try:
+        gid = grp.getgrnam(SOCKET_GROUP).gr_gid
+    except KeyError:
+        raise SystemExit("no such group: %s" % SOCKET_GROUP)
+    os.chown(SOCKET, 0, gid)
+    os.chmod(SOCKET, 0o660)
+    os.chown(os.path.dirname(SOCKET), 0, gid)
+    srv.listen(4)
+    print("iot-netctl: listening on %s for group %s" % (SOCKET, SOCKET_GROUP), flush=True)
+
+    # The socket is already root:<group> 0660, so the kernel is the real gate.
+    # This is the second one: the peer must be root or in that group.
+    allowed = _uids_in_group(SOCKET_GROUP)
+    while True:
+        try:
+            conn, _ = srv.accept()
+        except OSError:
+            continue
+        try:
+            conn.settimeout(120)
+            creds = conn.getsockopt(socketmod.SOL_SOCKET, socketmod.SO_PEERCRED,
+                                    struct.calcsize("3i"))
+            _pid, uid, _gid = struct.unpack("3i", creds)
+            if uid not in allowed:
+                _reply(conn, {"error": "not permitted"})
+                continue
+            raw = b""
+            while b"\n" not in raw and len(raw) < 65536:
+                chunk = conn.recv(4096)
+                if not chunk:
+                    break
+                raw += chunk
+            try:
+                req = json.loads(raw.decode() or "{}")
+            except ValueError:
+                _reply(conn, {"error": "not JSON"})
+                continue
+            verb = req.get("verb")
+            if verb not in REMOTE:
+                _reply(conn, {"error": "unknown verb"})
+                continue
+            try:
+                _reply(conn, REMOTE[verb](req.get("payload")))
+            except Invalid as exc:
+                _reply(conn, {"error": "rejected: %s" % exc})
+            except SystemExit as exc:
+                _reply(conn, {"error": str(exc)})
+            except Exception as exc:                  # never take the daemon down
+                _reply(conn, {"error": "%s: %s" % (type(exc).__name__, exc)})
+        finally:
+            try:
+                conn.close()
+            except OSError:
+                pass
+
+
+def _uids_in_group(group_name):
+    """Root, plus every user in that group — by membership, not by name.
+
+    A group and a user can share a name without being related, so looking the
+    group name up in the password file would be a guess.
+    """
+    import grp
+    import pwd
+
+    allowed = {0}
+    try:
+        group = grp.getgrnam(group_name)
+    except KeyError:
+        return allowed
+    for member in group.gr_mem:
+        try:
+            allowed.add(pwd.getpwnam(member).pw_uid)
+        except KeyError:
+            continue
+    for user in pwd.getpwall():          # a primary group has no member entry
+        if user.pw_gid == group.gr_gid:
+            allowed.add(user.pw_uid)
+    return allowed
+
+
+def _reply(conn, doc):
+    try:
+        conn.sendall((json.dumps(doc) + "\n").encode())
+    except OSError:
+        pass
+
+
+VERBS = {"config": cmd_config, "up": cmd_up, "down": cmd_down, "serve": cmd_serve,
+         "diagnose": cmd_diagnose, "firewall": cmd_firewall,
+         "radio-on": lambda: cmd_radio(True), "radio-off": lambda: cmd_radio(False),
+         "status": cmd_status, "clients": cmd_clients}
+NEEDS_ROOT = ("config", "up", "down", "radio-on", "radio-off", "serve",
+              "diagnose", "firewall")
+
+
+def main(argv):
+    args = [a for a in argv[1:] if a != "--dry-run"]
+    dry = "--dry-run" in argv
+    if len(args) != 1 or args[0] not in VERBS:
+        raise SystemExit("usage: iot-netctl {%s} [--dry-run]" % "|".join(VERBS))
+    verb = args[0]
+    if verb in NEEDS_ROOT and os.geteuid() != 0 and not dry:
+        raise SystemExit("must run as root (the console calls this through sudo)")
+    if verb == "up":
+        return cmd_up(dry_run=dry)
+    return VERBS[verb]()
+
+
+if __name__ == "__main__":
+    main(sys.argv)

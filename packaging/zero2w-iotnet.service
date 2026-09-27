@@ -1,0 +1,31 @@
+# A template: scripts/install.sh fills in @GROUP@ and @APPDIR@.
+[Unit]
+Description=Auto-Blox network helper — the privileged half of the IOT screen
+Documentation=file:@APPDIR@/README.md
+After=network.target
+
+[Service]
+Type=simple
+# Root, because bringing an access point up is a root job. It accepts seven
+# verbs on a socket and nothing else; the console cannot ask it for anything
+# that is not on that list, and it re-validates every value it is given.
+ExecStart=/usr/local/sbin/iot-netctl serve
+Restart=on-failure
+RestartSec=3
+# hostapd and dnsmasq are started by this service and inherit its cgroup, and
+# the default KillMode takes the whole cgroup down. So `systemctl restart
+# zero2w-iotnet` used to take the access point with it, dropping every board
+# off the network when this file was reinstalled. This service is a
+# control channel, not the AP's supervisor: `iot-netctl down` is what stops the
+# access point, and restarting the channel must not.
+KillMode=process
+Environment=PYTHONUNBUFFERED=1
+# /run/zero2w-iot, handed to the console's group so only that user can connect.
+RuntimeDirectory=zero2w-iot
+RuntimeDirectoryMode=0750
+Environment=ZERO2W_IOT_GROUP=@GROUP@
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

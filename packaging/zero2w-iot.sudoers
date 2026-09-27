@@ -1,0 +1,26 @@
+# LEGACY — prefer packaging/zero2w-iotnet.service.
+#
+# The console's own unit sets NoNewPrivileges=yes, deliberately, because it
+# also exposes a shell. That makes sudo impossible from the service, so this
+# file does nothing for it: install the helper *service* instead, which listens
+# on a socket only the console's group can open. Keep this only for a setup
+# that cannot run that service, and remove it otherwise:
+#
+#   sudo rm /etc/sudoers.d/zero2w-iot
+#
+#   scripts/install.sh --render /tmp/zero2w     (fills in the user)
+#   sudo install -m 0440 -o root -g root /tmp/zero2w/zero2w-iot.sudoers \
+#        /etc/sudoers.d/zero2w-iot
+#
+# The helper takes no configuration from its command line: the only input is
+# JSON on stdin for `config`, which it validates before storing. That is what
+# keeps this entry from being a root shell — check `visudo -c` after installing.
+@USER@ ALL=(root) NOPASSWD: /usr/local/sbin/iot-netctl config, \
+                          /usr/local/sbin/iot-netctl up, \
+                          /usr/local/sbin/iot-netctl down, \
+                          /usr/local/sbin/iot-netctl firewall, \
+                          /usr/local/sbin/iot-netctl radio-on, \
+                          /usr/local/sbin/iot-netctl radio-off, \
+                          /usr/local/sbin/iot-netctl diagnose, \
+                          /usr/local/sbin/iot-netctl status, \
+                          /usr/local/sbin/iot-netctl clients

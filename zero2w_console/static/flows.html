@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Flow Studio — Auto-Blox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/tokens.css">
+<link rel="stylesheet" href="/static/bundle.css">
+<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/flows.css">
+<link rel="stylesheet" href="/static/pins.css">
+</head>
+<body class="studio-body">
+<nav class="dock-top" id="dock"></nav>
+<header class="studio-bar" id="studio-bar"></header>
+<section class="index-view" id="index-view"></section>
+<div class="studio" id="studio">
+  <aside class="pane pane--palette" id="palette"></aside>
+  <section class="pane pane--canvas">
+    <div class="canvas-wrap" id="canvas-wrap">
+      <svg class="canvas-links" id="links"></svg>
+      <div class="canvas-nodes" id="nodes"></div>
+    </div>
+    <div class="canvas-hint" id="canvas-hint"></div>
+  </section>
+  <aside class="pane pane--side" id="side"></aside>
+</div>
+<footer class="studio-foot" id="studio-foot"></footer>
+<script src="/static/bundle.js"></script>
+<script src="/static/nav.js"></script>
+<script src="/static/flows.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# A template: scripts/install.sh fills in @USER@, @GROUP@ and @APPDIR@.
+[Unit]
+Description=Auto-Blox — dashboard and automation for this board
+Documentation=file:@APPDIR@/README.md
+# Start once the network stack is up; the dashboard itself tolerates a down link.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=@GROUP@
+# systemd-journal membership is what lets the log widget read the system journal.
+# gpio: /dev/gpiochip*  ·  i2c: /dev/i2c-*  ·  journal: the log widget
+SupplementaryGroups=systemd-journal gpio i2c
+WorkingDirectory=@APPDIR@
+ExecStart=/usr/bin/python3 -m zero2w_console --port 8787
+Restart=always
+RestartSec=3
+# Unbuffered so the startup banner reaches the journal immediately.
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=journal
+StandardError=journal
+
+# Modest hardening. The console reads /proc and /sys and runs shell commands on
+# request, so it deliberately does NOT get ProtectSystem=strict or PrivateTmp.
+NoNewPrivileges=yes
+ProtectClock=yes
+ProtectKernelLogs=no
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

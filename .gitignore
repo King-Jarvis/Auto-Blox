@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Runtime state and secrets live in ~/.config/zero2w-console, never in the repo.
+# These entries only guard against a stray copy being pasted in here.
+token
+*.token
+flows.json
+# What the agent writes next to itself on a board's flash.
+config.json
+modules.json
+
+# Editors / desktops
+*.swp
+*~
+.DS_Store
+
+# Flow snapshots are your own flows: kept here on disk, never committed.
+backups/*.json

@@ -1,0 +1,519 @@
+{
+ "board": "orangepi-zero2w",
+ "prefix": "sun50i-h616",
+ "source": "dtc over sun50i-h618-orangepi-zero2w.dtb and /boot/dtb/allwinner/overlay/sun50i-h616-*.dtbo",
+ "overlays": [
+  {
+   "name": "i2c0-pi",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c0-pi.dtbo",
+   "pins": [
+    {
+     "pin": "PI5",
+     "phys": 15
+    },
+    {
+     "pin": "PI6",
+     "phys": 22
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "i2c1-pi",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c1-pi.dtbo",
+   "pins": [
+    {
+     "pin": "PI7",
+     "phys": 5
+    },
+    {
+     "pin": "PI8",
+     "phys": 3
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "i2c2-ph",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c2-ph.dtbo",
+   "pins": [
+    {
+     "pin": "PH2",
+     "phys": 11
+    },
+    {
+     "pin": "PH3",
+     "phys": 13
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "i2c2-pi",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c2-pi.dtbo",
+   "pins": [
+    {
+     "pin": "PI9",
+     "phys": 28
+    },
+    {
+     "pin": "PI10",
+     "phys": 27
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "i2c3-pg",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c3-pg.dtbo",
+   "pins": [
+    {
+     "pin": "PG17",
+     "phys": null
+    },
+    {
+     "pin": "PG18",
+     "phys": null
+    }
+   ],
+   "on_header": false
+  },
+  {
+   "name": "i2c3-ph",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c3-ph.dtbo",
+   "pins": [
+    {
+     "pin": "PH4",
+     "phys": 18
+    },
+    {
+     "pin": "PH5",
+     "phys": 24
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "i2c4-pg",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c4-pg.dtbo",
+   "pins": [
+    {
+     "pin": "PG15",
+     "phys": null
+    },
+    {
+     "pin": "PG16",
+     "phys": null
+    }
+   ],
+   "on_header": false
+  },
+  {
+   "name": "i2c4-ph",
+   "kind": "i2c",
+   "file": "sun50i-h616-i2c4-ph.dtbo",
+   "pins": [
+    {
+     "pin": "PH6",
+     "phys": 23
+    },
+    {
+     "pin": "PH7",
+     "phys": 19
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm1-ph3",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm1-ph3.dtbo",
+   "pins": [
+    {
+     "pin": "PH3",
+     "phys": 13
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm1-pi11",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm1-pi11.dtbo",
+   "pins": [
+    {
+     "pin": "PI11",
+     "phys": 32
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm2-ph2",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm2-ph2.dtbo",
+   "pins": [
+    {
+     "pin": "PH2",
+     "phys": 11
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm2-pi12",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm2-pi12.dtbo",
+   "pins": [
+    {
+     "pin": "PI12",
+     "phys": 33
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm3-ph0",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm3-ph0.dtbo",
+   "pins": [
+    {
+     "pin": "PH0",
+     "phys": 8
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm3-pi13",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm3-pi13.dtbo",
+   "pins": [
+    {
+     "pin": "PI13",
+     "phys": 7
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm4-ph1",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm4-ph1.dtbo",
+   "pins": [
+    {
+     "pin": "PH1",
+     "phys": 10
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "pwm4-pi14",
+   "kind": "pwm",
+   "file": "sun50i-h616-pwm4-pi14.dtbo",
+   "pins": [
+    {
+     "pin": "PI14",
+     "phys": 16
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "spi-spidev",
+   "kind": "spi",
+   "file": "sun50i-h616-spi-spidev.dtbo",
+   "pins": [
+    {
+     "pin": "PC0",
+     "phys": null
+    },
+    {
+     "pin": "PC2",
+     "phys": null
+    },
+    {
+     "pin": "PC4",
+     "phys": null
+    },
+    {
+     "pin": "PC3",
+     "phys": null
+    }
+   ],
+   "on_header": false
+  },
+  {
+   "name": "spidev0_0",
+   "kind": "spi",
+   "file": "sun50i-h616-spidev0_0.dtbo",
+   "pins": [
+    {
+     "pin": "PC0",
+     "phys": null
+    },
+    {
+     "pin": "PC2",
+     "phys": null
+    },
+    {
+     "pin": "PC4",
+     "phys": null
+    },
+    {
+     "pin": "PC3",
+     "phys": null
+    }
+   ],
+   "on_header": false
+  },
+  {
+   "name": "spidev1_0",
+   "kind": "spi",
+   "file": "sun50i-h616-spidev1_0.dtbo",
+   "pins": [],
+   "on_header": false,
+   "note": "switches the controller on without assigning any pins"
+  },
+  {
+   "name": "spidev1_1",
+   "kind": "spi",
+   "file": "sun50i-h616-spidev1_1.dtbo",
+   "pins": [],
+   "on_header": false,
+   "note": "switches the controller on without assigning any pins"
+  },
+  {
+   "name": "spidev1_2",
+   "kind": "spi",
+   "file": "sun50i-h616-spidev1_2.dtbo",
+   "pins": [],
+   "on_header": false,
+   "note": "switches the controller on without assigning any pins"
+  },
+  {
+   "name": "uart2-pg-rts-cts",
+   "kind": "uart",
+   "file": "sun50i-h616-uart2-pg-rts-cts.dtbo",
+   "pins": [
+    {
+     "pin": "PG15",
+     "phys": null
+    },
+    {
+     "pin": "PG16",
+     "phys": null
+    },
+    {
+     "pin": "PG17",
+     "phys": null
+    },
+    {
+     "pin": "PG18",
+     "phys": null
+    }
+   ],
+   "on_header": false
+  },
+  {
+   "name": "uart2-pg",
+   "kind": "uart",
+   "file": "sun50i-h616-uart2-pg.dtbo",
+   "pins": [
+    {
+     "pin": "PG15",
+     "phys": null
+    },
+    {
+     "pin": "PG16",
+     "phys": null
+    }
+   ],
+   "on_header": false
+  },
+  {
+   "name": "uart2-ph-rts-cts",
+   "kind": "uart",
+   "file": "sun50i-h616-uart2-ph-rts-cts.dtbo",
+   "pins": [
+    {
+     "pin": "PH5",
+     "phys": 24
+    },
+    {
+     "pin": "PH6",
+     "phys": 23
+    },
+    {
+     "pin": "PH7",
+     "phys": 19
+    },
+    {
+     "pin": "PH8",
+     "phys": 21
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart2-ph",
+   "kind": "uart",
+   "file": "sun50i-h616-uart2-ph.dtbo",
+   "pins": [
+    {
+     "pin": "PH5",
+     "phys": 24
+    },
+    {
+     "pin": "PH6",
+     "phys": 23
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart2-pi-rts-cts",
+   "kind": "uart",
+   "file": "sun50i-h616-uart2-pi-rts-cts.dtbo",
+   "pins": [
+    {
+     "pin": "PI5",
+     "phys": 15
+    },
+    {
+     "pin": "PI6",
+     "phys": 22
+    },
+    {
+     "pin": "PI7",
+     "phys": 5
+    },
+    {
+     "pin": "PI8",
+     "phys": 3
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart2-pi",
+   "kind": "uart",
+   "file": "sun50i-h616-uart2-pi.dtbo",
+   "pins": [
+    {
+     "pin": "PI5",
+     "phys": 15
+    },
+    {
+     "pin": "PI6",
+     "phys": 22
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart3-pi-rts-cts",
+   "kind": "uart",
+   "file": "sun50i-h616-uart3-pi-rts-cts.dtbo",
+   "pins": [
+    {
+     "pin": "PI9",
+     "phys": 28
+    },
+    {
+     "pin": "PI10",
+     "phys": 27
+    },
+    {
+     "pin": "PI11",
+     "phys": 32
+    },
+    {
+     "pin": "PI12",
+     "phys": 33
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart3-pi",
+   "kind": "uart",
+   "file": "sun50i-h616-uart3-pi.dtbo",
+   "pins": [
+    {
+     "pin": "PI9",
+     "phys": 28
+    },
+    {
+     "pin": "PI10",
+     "phys": 27
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart4-pi-rts-cts",
+   "kind": "uart",
+   "file": "sun50i-h616-uart4-pi-rts-cts.dtbo",
+   "pins": [
+    {
+     "pin": "PI13",
+     "phys": 7
+    },
+    {
+     "pin": "PI14",
+     "phys": 16
+    },
+    {
+     "pin": "PI15",
+     "phys": 31
+    },
+    {
+     "pin": "PI16",
+     "phys": 37
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart4-pi",
+   "kind": "uart",
+   "file": "sun50i-h616-uart4-pi.dtbo",
+   "pins": [
+    {
+     "pin": "PI13",
+     "phys": 7
+    },
+    {
+     "pin": "PI14",
+     "phys": 16
+    }
+   ],
+   "on_header": true
+  },
+  {
+   "name": "uart5",
+   "kind": "uart",
+   "file": "sun50i-h616-uart5.dtbo",
+   "pins": [
+    {
+     "pin": "PH2",
+     "phys": 11
+    },
+    {
+     "pin": "PH3",
+     "phys": 13
+    }
+   ],
+   "on_header": true
+  }
+ ]
+}

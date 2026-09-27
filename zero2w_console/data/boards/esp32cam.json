@@ -1,0 +1,383 @@
+{
+  "board": "esp32cam",
+  "label": "ESP32-CAM (AI-Thinker)",
+  "chip": "ESP32",
+  "family": "esp32",
+  "cores": 2,
+  "voltage": "3.3",
+  "flash_default_mb": 4,
+  "source": "AI-Thinker ESP32-CAM schematic rev.1.0; esp32-camera camera_pins.h CAMERA_MODEL_AI_THINKER; ESP32 Datasheet \u00a72.2",
+  "peripherals": {
+    "wifi": true,
+    "ble": true,
+    "usb": "bridge",
+    "psram": true,
+    "camera": true,
+    "touch": true,
+    "dac": true
+  },
+  "buses": {
+    "uart0": {
+      "tx": 1,
+      "rx": 3
+    },
+    "i2c": {
+      "sda": 13,
+      "scl": 15,
+      "note": "no fixed pins \u2014 these are two free header pins, shared with the SD slot"
+    }
+  },
+  "pins": [
+    {
+      "gpio": 0,
+      "name": "GPIO0",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": true,
+      "note": "wired to the camera module; strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 1,
+      "name": "GPIO1",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "UART0, the serial console used for flashing"
+    },
+    {
+      "gpio": 2,
+      "name": "GPIO2",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "ADC2, which cannot be read while WiFi is on; strapping pin \u2014 its level at reset changes how the chip boots; shared with the microSD slot \u2014 free unless the slot is used"
+    },
+    {
+      "gpio": 3,
+      "name": "GPIO3",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "UART0, the serial console used for flashing"
+    },
+    {
+      "gpio": 4,
+      "name": "GPIO4",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on; on-board flash LED \u2014 bright, and shares a line with the microSD slot; shared with the microSD slot \u2014 free unless the slot is used"
+    },
+    {
+      "gpio": 5,
+      "name": "GPIO5",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 6,
+      "name": "GPIO6",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 7,
+      "name": "GPIO7",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 8,
+      "name": "GPIO8",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 9,
+      "name": "GPIO9",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 10,
+      "name": "GPIO10",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 11,
+      "name": "GPIO11",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 12,
+      "name": "GPIO12",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "ADC2, which cannot be read while WiFi is on; strapping pin \u2014 its level at reset changes how the chip boots; shared with the microSD slot \u2014 free unless the slot is used"
+    },
+    {
+      "gpio": 13,
+      "name": "GPIO13",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on; shared with the microSD slot \u2014 free unless the slot is used"
+    },
+    {
+      "gpio": 14,
+      "name": "GPIO14",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on; shared with the microSD slot \u2014 free unless the slot is used"
+    },
+    {
+      "gpio": 15,
+      "name": "GPIO15",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "ADC2, which cannot be read while WiFi is on; strapping pin \u2014 its level at reset changes how the chip boots; shared with the microSD slot \u2014 free unless the slot is used"
+    },
+    {
+      "gpio": 16,
+      "name": "GPIO16",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to this module's PSRAM"
+    },
+    {
+      "gpio": 17,
+      "name": "GPIO17",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board"
+    },
+    {
+      "gpio": 18,
+      "name": "GPIO18",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 19,
+      "name": "GPIO19",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 21,
+      "name": "GPIO21",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 22,
+      "name": "GPIO22",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 23,
+      "name": "GPIO23",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 25,
+      "name": "GPIO25",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 26,
+      "name": "GPIO26",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 27,
+      "name": "GPIO27",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 32,
+      "name": "GPIO32",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 33,
+      "name": "GPIO33",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "on-board red LED (active low), not on the header"
+    },
+    {
+      "gpio": 34,
+      "name": "GPIO34",
+      "caps": [],
+      "usable": false,
+      "input_only": true,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 35,
+      "name": "GPIO35",
+      "caps": [],
+      "usable": false,
+      "input_only": true,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 36,
+      "name": "GPIO36",
+      "caps": [],
+      "usable": false,
+      "input_only": true,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    },
+    {
+      "gpio": 39,
+      "name": "GPIO39",
+      "caps": [],
+      "usable": false,
+      "input_only": true,
+      "strapping": false,
+      "note": "not brought out on this board; wired to the camera module"
+    }
+  ],
+  "counts": {
+    "gpio": 32,
+    "usable": 9,
+    "adc": 7,
+    "output": 9
+  }
+}

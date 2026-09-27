@@ -1,0 +1,638 @@
+{
+  "board": "esp32s3",
+  "label": "ESP32-S3",
+  "chip": "ESP32-S3",
+  "family": "esp32",
+  "cores": 2,
+  "voltage": "3.3",
+  "flash_default_mb": 8,
+  "source": "ESP32-S3 TRM ch.6; ESP32-S3 Datasheet \u00a72.1, \u00a74.3; S3-WROOM-1 Datasheet \u00a72.2",
+  "peripherals": {
+    "wifi": true,
+    "ble": true,
+    "usb": "native",
+    "psram": "optional",
+    "camera": false,
+    "touch": true,
+    "dac": false
+  },
+  "buses": {
+    "i2c": {
+      "sda": 8,
+      "scl": 9,
+      "note": "the usual devkit pair; any GPIO works"
+    },
+    "spi": {
+      "mosi": 11,
+      "miso": 13,
+      "sck": 12,
+      "cs": 10,
+      "note": "SPI2 default"
+    },
+    "uart0": {
+      "tx": 43,
+      "rx": 44
+    }
+  },
+  "pins": [
+    {
+      "gpio": 0,
+      "name": "GPIO0",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 1,
+      "name": "GPIO1",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 2,
+      "name": "GPIO2",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 3,
+      "name": "GPIO3",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 4,
+      "name": "GPIO4",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 5,
+      "name": "GPIO5",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 6,
+      "name": "GPIO6",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 7,
+      "name": "GPIO7",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 8,
+      "name": "GPIO8",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 9,
+      "name": "GPIO9",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 10,
+      "name": "GPIO10",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 11,
+      "name": "GPIO11",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 12,
+      "name": "GPIO12",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 13,
+      "name": "GPIO13",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 14,
+      "name": "GPIO14",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "touch",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 15,
+      "name": "GPIO15",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 16,
+      "name": "GPIO16",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 17,
+      "name": "GPIO17",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 18,
+      "name": "GPIO18",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 19,
+      "name": "GPIO19",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on; USB D+/D- \u2014 taking it breaks the native USB serial"
+    },
+    {
+      "gpio": 20,
+      "name": "GPIO20",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on; USB D+/D- \u2014 taking it breaks the native USB serial"
+    },
+    {
+      "gpio": 21,
+      "name": "GPIO21",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 26,
+      "name": "GPIO26",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 27,
+      "name": "GPIO27",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 28,
+      "name": "GPIO28",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 29,
+      "name": "GPIO29",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 30,
+      "name": "GPIO30",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 31,
+      "name": "GPIO31",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 32,
+      "name": "GPIO32",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 33,
+      "name": "GPIO33",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "used by octal PSRAM on -R2 and -R8 modules, free on plain ones; the device's own probe settles it"
+    },
+    {
+      "gpio": 34,
+      "name": "GPIO34",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "used by octal PSRAM on -R2 and -R8 modules, free on plain ones; the device's own probe settles it"
+    },
+    {
+      "gpio": 35,
+      "name": "GPIO35",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "used by octal PSRAM on -R2 and -R8 modules, free on plain ones; the device's own probe settles it"
+    },
+    {
+      "gpio": 36,
+      "name": "GPIO36",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "used by octal PSRAM on -R2 and -R8 modules, free on plain ones; the device's own probe settles it"
+    },
+    {
+      "gpio": 37,
+      "name": "GPIO37",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "used by octal PSRAM on -R2 and -R8 modules, free on plain ones; the device's own probe settles it"
+    },
+    {
+      "gpio": 38,
+      "name": "GPIO38",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 39,
+      "name": "GPIO39",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 40,
+      "name": "GPIO40",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 41,
+      "name": "GPIO41",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 42,
+      "name": "GPIO42",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 43,
+      "name": "GPIO43",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "UART0, the serial console used for flashing"
+    },
+    {
+      "gpio": 44,
+      "name": "GPIO44",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "UART0, the serial console used for flashing"
+    },
+    {
+      "gpio": 45,
+      "name": "GPIO45",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 46,
+      "name": "GPIO46",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 47,
+      "name": "GPIO47",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 48,
+      "name": "GPIO48",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    }
+  ],
+  "counts": {
+    "gpio": 45,
+    "usable": 33,
+    "adc": 20,
+    "output": 33
+  }
+}

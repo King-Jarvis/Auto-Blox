@@ -1,0 +1,311 @@
+/* Page-level layout only. Everything a component owns lives in bundle.css,
+   and every value here is a design-system token. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--surface-000);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 19px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  padding: var(--space-6);
+  /* clear the fixed dock, which sits at the top: its height plus its margin
+     plus a gap. Every screen carries the same bar in the same place. */
+  padding-top: calc(var(--space-7) + var(--space-6) + var(--space-5));
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ---- top bar ----------------------------------------------------------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+.topbar-id { display: flex; align-items: baseline; gap: var(--space-3); min-width: 0; }
+.topbar-host {
+  font-family: var(--font-mono);
+  font-size: 20px; line-height: 24px; font-weight: 500;
+  color: var(--ink);
+}
+.topbar-model {
+  font-family: var(--font-ui);
+  font-size: 11px; line-height: 14px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.topbar-tools { display: flex; align-items: center; gap: var(--space-3); }
+
+/* ---- the fixed dock ---------------------------------------------------- */
+.dock-fixed {
+  position: fixed;
+  left: var(--space-6); right: var(--space-6); top: var(--space-4);
+  z-index: 10;
+  max-width: calc(1600px - var(--space-6) * 2);
+  margin: 0 auto;
+}
+.dock-fixed .z-dock { box-shadow: var(--shadow-float); }
+/* The theme switch lives at the right-hand end of the dock, so it is in one
+   place on every screen. Ghost-styled: it sits among readouts, not buttons,
+   and should not compete with the active screen for attention. */
+.z-dock-theme { margin-left: var(--space-2); flex: none; }
+
+/* A page may append its own items after the four screens. The hairline says
+   where the navigation stops and the page's own shortcuts begin. */
+.z-dock-item.is-nav-break {
+  margin-left: var(--space-2);
+  border-left: var(--stroke-hairline) solid var(--hairline);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding-left: var(--space-3);
+}
+
+/* A widget's subtitle is `word-break: break-all` in the design system, which
+   is right for `enx0a1b2c3d4e5f` and wrong for a sentence — it split "flash"
+   across two lines. `anywhere` breaks a word only when it genuinely will not
+   fit, which serves both. Worth taking back into the design system.
+   See docs/CONTEXT.md §3 on keeping bundle.css and the artifact in step. */
+.z-widget-sub { word-break: normal; overflow-wrap: anywhere; }
+
+/* ---- grid spans -------------------------------------------------------- */
+.span-3 { grid-column: span 3; }
+.span-4 { grid-column: span 4; }
+.span-6 { grid-column: span 6; }
+.span-8 { grid-column: span 8; }
+.span-12 { grid-column: span 12; }
+
+/* ---- widget-internal arrangements ------------------------------------- */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.gauges {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.stack { display: flex; flex-direction: column; gap: var(--space-3); }
+.rows { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.iface { display: flex; flex-direction: column; gap: var(--space-1); }
+.iface-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-3);
+}
+.iface-addr {
+  font-family: var(--font-mono);
+  font-size: 11px; line-height: 15px; font-weight: 500;
+  color: var(--ink-faint);
+}
+.iface-rates { display: flex; align-items: center; gap: var(--space-3); }
+.iface-rate {
+  display: flex; align-items: baseline; gap: var(--space-1);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  color: var(--ink-muted); font-variant-numeric: tabular-nums;
+  min-width: 96px;
+}
+.iface-rate b { color: var(--ink); font-weight: 500; }
+
+/* ---- terminal input --------------------------------------------------- */
+.term-form {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-300);
+  border-top: var(--stroke-hairline) solid var(--hairline);
+  font-family: var(--font-mono); font-size: 12px; line-height: 18px;
+}
+.term-form-prompt { color: var(--ok); white-space: nowrap; }
+.term-form input {
+  flex: 1; min-width: 0;
+  background: transparent; border: none; outline: none;
+  color: var(--ink);
+  font-family: var(--font-mono); font-size: 12px; line-height: 18px;
+  caret-color: var(--signal);
+}
+.term-form input::placeholder { color: var(--ink-faint); }
+.term-form input:focus-visible {
+  outline: var(--stroke-focus) solid var(--focus-ring);
+  outline-offset: var(--space-0\.5);
+}
+.term-busy { color: var(--signal); }
+
+/* ---- connection banner ------------------------------------------------ */
+.banner {
+  display: none;
+  align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--critical-wash);
+  border: var(--stroke-hairline) solid var(--critical);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+}
+.banner.is-shown { display: flex; }
+
+/* ---- narrow screens: 6 columns, per the layout guidelines ------------- */
+@media (max-width: 900px) {
+  .page { padding: var(--space-4); padding-top: calc(var(--space-7) + var(--space-6) + var(--space-4)); }
+  .z-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .span-3 { grid-column: span 3; }
+  .span-4, .span-6, .span-8, .span-12 { grid-column: span 6; }
+  .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dock-fixed { left: var(--space-4); right: var(--space-4); }
+}
+
+/* On a phone the dock's list scrolls sideways, which hid every screen but the
+   first behind a gesture nobody would guess at. The nav is the point: let it
+   wrap, and give it the room by dropping the brand block and the clock. */
+@media (max-width: 700px) {
+  /* .z-dock is a fixed height in the design system, so a wrapped row paints
+     outside its own box. It has to grow. */
+  .dock-fixed .z-dock, .dock-top .z-dock {
+    flex-wrap: wrap; height: auto; min-height: var(--space-7);
+    padding-top: var(--space-1); padding-bottom: var(--space-1);
+    gap: var(--space-1) var(--space-3);
+  }
+  .dock-fixed .z-dock-list, .dock-top .z-dock-list {
+    flex-wrap: wrap; overflow-x: visible; flex: 1 1 100%;
+  }
+  .dock-fixed .z-dock-brand, .dock-top .z-dock-brand {
+    padding-right: var(--space-2); border-right: none;
+  }
+  .dock-fixed .z-dock-addr, .dock-top .z-dock-addr { display: none; }
+  .dock-fixed .z-dock-clock, .dock-top .z-dock-clock { display: none; }
+  .dock-fixed .z-dock-tail, .dock-top .z-dock-tail {
+    padding-left: var(--space-2); border-left: none; margin-left: auto;
+  }
+  /* The dock is already wrapping here, so the switch keeps its glyph and
+     drops its word. */
+  .z-dock-theme > span:last-child { display: none; }
+  .z-dock-theme { margin-left: var(--space-1); }
+  /* The page must clear a bar that is now two rows tall. */
+  .page { padding-top: calc(var(--space-7) * 2 + var(--space-6)); }
+}
+@media (max-width: 560px) {
+  .strip, .gauges { grid-template-columns: 1fr 1fr; }
+  .topbar { gap: var(--space-2); }
+}
+
+/* ---- camera tiles -------------------------------------------------------- */
+.cam-grid {
+  display: grid; gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  padding: var(--space-3);
+}
+.cam-tile { margin: 0; position: relative; cursor: pointer; }
+.cam-tile:focus-visible { outline: var(--stroke-focus) solid var(--focus-ring); outline-offset: 3px; }
+/* Two stacked frames, and only the loaded one is shown: swapping the src on a
+   single image blanks it until the next frame arrives, which at one frame a
+   second reads as a flicker. */
+.cam-frame, .cam-modal-frame {
+  position: relative; display: block; width: 100%; aspect-ratio: 4 / 3;
+  background: var(--surface-000);
+  border: var(--stroke-hairline) solid var(--hairline);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.cam-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  /* The sensor is 160x120: let it scale up cleanly rather than smear. */
+  image-rendering: pixelated;
+  opacity: 0;
+}
+.cam-img.is-shown { opacity: 1; }
+/* A JPEG turned a quarter on screen: contained, then shrunk so the tall
+   result fits the 4:3 frame. */
+.is-quarter .cam-img { object-fit: contain; transform: rotate(90deg) scale(0.75); }
+.cam-frame.is-dark, .cam-modal-frame.is-dark { opacity: 0.35; }
+.cam-tile:hover .cam-frame { border-color: var(--signal); }
+.cam-shade {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+}
+.cam-name {
+  font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: #fff;
+}
+.cam-state {
+  font-family: var(--font-ui); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.cam-state.is-live { color: var(--ok); }
+.cam-meta {
+  display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap;
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted);
+}
+/* How old the picture is, which is not the same question as whether the
+   device is online. */
+.cam-age { margin-left: auto; color: var(--ink-faint); }
+.cam-empty {
+  padding: var(--space-5) var(--space-4); margin: 0; text-align: center;
+  font-family: var(--font-ui); font-size: 13px; line-height: 1.6; color: var(--ink-muted);
+}
+.cam-empty strong { display: block; color: var(--ink); margin-bottom: var(--space-2); }
+
+/* The Cameras screen: the same tiles, given room. */
+.cam-wall { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+.cam-source {
+  display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap;
+  margin-top: var(--space-1);
+  font-family: var(--font-ui); font-size: 11px; color: var(--ink-faint);
+}
+.cam-source .cam-board { margin-left: auto; font-family: var(--font-mono); }
+@media (max-width: 560px) {
+  .cam-wall { grid-template-columns: 1fr; }
+}
+
+/* ---- one camera, enlarged ------------------------------------------------ */
+.cam-modal {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4);
+  background: rgba(0, 0, 0, var(--opacity-scrim, 0.7));
+}
+.cam-modal-inner {
+  display: grid; gap: var(--space-2);
+  width: min(960px, 96vw);
+  padding: var(--space-3);
+  background: var(--surface-100);
+  border: var(--stroke-hairline) solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+}
+.cam-modal-head { display: flex; align-items: baseline; gap: var(--space-3); }
+.cam-modal-name {
+  font-family: var(--font-ui); font-size: 15px; font-weight: 600; color: var(--ink);
+}
+.cam-modal-meta {
+  flex: 1; font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted);
+}
+.cam-modal-close {
+  flex: none; width: 32px; height: 32px;
+  font-size: 15px; line-height: 1; color: var(--ink-muted);
+  background: var(--surface-300);
+  border: var(--stroke-hairline) solid var(--hairline);
+  border-radius: var(--radius-sm); cursor: pointer;
+}
+.cam-modal-close:hover { color: var(--ink); border-color: var(--hairline-strong); }
+.cam-modal-close:focus-visible { outline: var(--stroke-focus) solid var(--focus-ring); }
+.cam-modal-frame { aspect-ratio: 4 / 3; max-height: 72vh; }
+.cam-modal-foot {
+  font-family: var(--font-ui); font-size: 11px; color: var(--ink-faint); text-align: center;
+}
+@media (max-width: 560px) {
+  .cam-modal { padding: var(--space-2); }
+  .cam-modal-head { flex-wrap: wrap; gap: var(--space-1) var(--space-2); }
+  .cam-modal-meta { flex: 1 1 100%; font-size: 11px; }
+}

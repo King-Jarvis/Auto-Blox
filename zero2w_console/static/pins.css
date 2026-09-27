@@ -1,0 +1,49 @@
+/* The pin map, shared by Flow Studio's inspector and the IOT device view.
+   Both show the same thing — which pins a board has, what is bound to them and
+   what they are doing right now — so they must look the same, and one copy is
+   the only way that stays true. */
+
+/* ---- pin map ------------------------------------------------------------ */
+.pinmap { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--space-4); }
+.pin {
+  display: flex; align-items: center; gap: var(--space-1);
+  padding: 1px 0; cursor: default;
+  font-family: var(--font-mono); font-size: 10px; line-height: 15px;
+  background: none; border: none; text-align: left; width: 100%;
+}
+.pin.is-clickable { cursor: pointer; }
+.pin.is-clickable:hover { background: var(--signal-wash); }
+.pin.is-selected { background: var(--signal-wash); outline: var(--stroke-hairline) solid var(--signal); }
+/* A pin a chosen header bus would take; the label names the bus as well. */
+.pin.is-bus { outline: var(--stroke-hairline) dashed var(--signal); outline-offset: -1px; }
+.pin--right { flex-direction: row-reverse; text-align: right; }
+.pin-num {
+  min-width: 17px; text-align: center; color: var(--ink-faint);
+  border: var(--stroke-hairline) solid var(--hairline); border-radius: 2px;
+}
+.pin-dot { width: 7px; height: 7px; border-radius: var(--radius-pill); flex: none; background: var(--ink-faint); }
+.pin-dot--free { background: var(--ok); }
+.pin-dot--bound { background: var(--signal); }
+.pin-dot--reserved { background: var(--critical); }
+.pin-dot--unknown { background: var(--ink-faint); }
+.pin-dot--power { background: var(--serious); }
+.pin-dot--ground { background: var(--hairline-strong); }
+.pin-label { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pin-high { color: var(--signal); font-weight: 500; }
+.pin-legend {
+  display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3) 0;
+  font-family: var(--font-ui); font-size: 10px; color: var(--ink-muted);
+}
+.pin-legend span { display: inline-flex; align-items: center; gap: var(--space-1); }
+.pin-detail {
+  margin: var(--space-2) var(--space-3) var(--space-3);
+  padding: var(--space-2);
+  background: var(--surface-300);
+  border: var(--stroke-hairline) solid var(--hairline);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 10px; line-height: 15px; color: var(--ink-muted);
+}
+.pin-detail b { color: var(--ink); font-weight: 500; }
+.pin-actions { display: flex; gap: var(--space-1); margin-top: var(--space-2); }
+

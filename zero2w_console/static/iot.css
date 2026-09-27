@@ -1,0 +1,209 @@
+/* IOT screen. Layout only — every colour comes from a token. */
+
+.iot-rows { display: grid; gap: var(--space-3); }
+.iot-row {
+  display: grid; grid-template-columns: 132px 1fr; gap: var(--space-2) var(--space-3);
+  align-items: baseline;
+}
+.iot-row dt { font-family: var(--font-ui); font-size: 12px; color: var(--ink-muted); }
+.iot-row dd { margin: 0; font-family: var(--font-mono); font-size: 13px; color: var(--ink); }
+.iot-row dd.is-prose { font-family: var(--font-ui); }
+
+/* A capability that is not available says why, and what to run. */
+.iot-hint {
+  display: flex; gap: var(--space-2); align-items: flex-start;
+  margin-top: var(--space-3); padding: var(--space-3);
+  background: var(--warn-wash);
+  border-left: var(--stroke-mark) solid var(--warn);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui); font-size: 12px; line-height: 1.5; color: var(--ink);
+}
+.iot-hint code {
+  font-family: var(--font-mono); font-size: 12px;
+  background: var(--surface-300); border-radius: var(--radius-sm);
+  padding: 1px var(--space-1); word-break: break-all;
+}
+.iot-missing { margin: var(--space-2) 0 0; padding-left: var(--space-4); }
+.iot-missing li {
+  font-family: var(--font-ui); font-size: 12px; color: var(--ink-muted);
+  line-height: 1.6;
+}
+
+.iot-modes { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* The device index: same card idiom as the flow index. */
+.dev-list { display: grid; gap: var(--space-3); }
+.dev-card {
+  display: grid; gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-200);
+  border: var(--stroke-hairline) solid var(--hairline);
+  border-left: var(--stroke-cap) solid var(--ink-faint);
+  border-radius: var(--radius-md);
+}
+.dev-card.is-online { border-left-color: var(--ok); }
+.dev-card.is-stale { border-left-color: var(--warn); }
+.dev-card-top { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.dev-card-name { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--ink); }
+.dev-card-id { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
+.dev-card-meta {
+  display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3);
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted);
+}
+
+.iot-empty {
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  font-family: var(--font-ui); font-size: 13px; line-height: 1.6; color: var(--ink-muted);
+}
+.iot-empty strong { display: block; color: var(--ink); margin-bottom: var(--space-2); }
+
+/* An explanation is prose, not an empty state: it reads left to right like
+   everything else on the page. */
+.iot-note {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-ui); font-size: 12px; line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 560px) {
+  /* 132px of label leaves nothing for the value on a phone */
+  .iot-row { grid-template-columns: 1fr; gap: 0 0; }
+  .iot-row dt { margin-top: var(--space-2); }
+}
+
+/* ---- the network form --------------------------------------------------- */
+.iot-form { display: grid; gap: var(--space-3); }
+.iot-field { display: grid; gap: var(--space-1); }
+.iot-field-label { font-family: var(--font-ui); font-size: 12px; color: var(--ink-muted); }
+.iot-field input, .iot-field select {
+  font-family: var(--font-mono);
+  /* 16px or a mobile browser zooms the page on focus */
+  font-size: 16px;
+  padding: var(--space-2);
+  color: var(--ink);
+  background: var(--surface-300);
+  border: var(--stroke-hairline) solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+.iot-field input:focus-visible, .iot-field select:focus-visible {
+  outline: var(--stroke-focus) solid var(--focus-ring); outline-offset: 2px;
+}
+.iot-field-help { font-family: var(--font-ui); font-size: 11px; color: var(--ink-faint); }
+.iot-form-acts { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.iot-hint.is-ok { background: var(--ok-wash); border-left-color: var(--ok); }
+.iot-hint.is-critical { background: var(--critical-wash); border-left-color: var(--critical); }
+
+/* ---- deploying and flashing --------------------------------------------- */
+.dev-deploy { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
+.dev-deploy select {
+  flex: 1 1 180px; min-width: 0;
+  font-family: var(--font-ui); font-size: 16px;
+  padding: var(--space-1) var(--space-2);
+  color: var(--ink); background: var(--surface-300);
+  border: var(--stroke-hairline) solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- the tab strip ------------------------------------------------------ */
+.iot-tabs {
+  display: flex; gap: var(--space-1); flex-wrap: wrap;
+  padding-bottom: var(--space-2);
+  border-bottom: var(--stroke-hairline) solid var(--hairline);
+}
+.iot-tab {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: none; border: var(--stroke-hairline) solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted);
+  cursor: pointer;
+}
+.iot-tab:hover { color: var(--ink); background: var(--signal-wash); }
+.iot-tab.is-active {
+  color: var(--signal); background: var(--signal-wash); border-color: var(--signal);
+}
+.iot-tab:focus-visible {
+  outline: var(--stroke-focus) solid var(--focus-ring); outline-offset: 2px;
+}
+
+/* ---- the setup steps ---------------------------------------------------- */
+/* A finished step is one line. The first unfinished one is open, because that
+   is the thing to do next. */
+.iot-steps { display: grid; }
+.iot-step { border-bottom: var(--stroke-hairline) solid var(--hairline); }
+.iot-step:last-child { border-bottom: none; }
+.iot-step-head {
+  display: flex; align-items: center; gap: var(--space-3); width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: none; border: none; text-align: left;
+  font-family: var(--font-ui); font-size: 13px; color: var(--ink);
+}
+.iot-step.is-done .iot-step-head { cursor: pointer; }
+.iot-step.is-done .iot-step-head:hover { background: var(--surface-200); }
+.iot-step-head:focus-visible {
+  outline: var(--stroke-focus) solid var(--focus-ring); outline-offset: -2px;
+}
+.iot-step-n {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; flex: none;
+  border-radius: var(--radius-pill);
+  border: var(--stroke-hairline) solid var(--hairline-strong);
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted);
+}
+.iot-step.is-done .iot-step-n {
+  color: var(--ok); border-color: var(--ok); background: var(--ok-wash);
+}
+.iot-step-title { font-weight: 600; flex: none; }
+.iot-step-sum {
+  flex: 1; min-width: 0;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.iot-step-caret {
+  flex: none; font-family: var(--font-mono); font-size: 14px; color: var(--ink-faint);
+}
+.iot-step-body { padding: 0 var(--space-4) var(--space-4); }
+.iot-step-body > .z-widget { border: none; background: none; }
+.iot-step-inner { display: grid; gap: var(--space-3); }
+
+@media (max-width: 560px) {
+  /* The summary and the title cannot share a line on a phone. */
+  .iot-step-head { flex-wrap: wrap; }
+  .iot-step-sum { flex-basis: 100%; order: 3; }
+}
+
+/* ---- sections inside a tab ---------------------------------------------- */
+.iot-section { display: grid; gap: var(--space-2); margin-top: var(--space-4); }
+.iot-section-head {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+}
+.iot-section-head .dev-card-id { margin: 0; flex: 1; }
+.field-help {
+  font-family: var(--font-ui); font-size: 11px; line-height: 1.5;
+  color: var(--ink-faint);
+}
+/* The same note, when it is telling you something you would rather know before
+   you press the button — a deploy that will take the board off the air for
+   minutes reads as advice, not as small print. */
+.field-help.is-warn {
+  color: var(--ink);
+  border-left: 2px solid var(--warn);
+  background: var(--warn-wash);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-1);
+}
+
+.dev-card.is-clickable { cursor: pointer; }
+.dev-card.is-clickable:hover { border-color: var(--hairline-strong); background: var(--surface-300); }
+.dev-card.is-clickable:focus-visible {
+  outline: var(--stroke-focus) solid var(--focus-ring); outline-offset: 2px;
+}
+
+/* ---- the flash monitor --------------------------------------------------- */
+/* The jump button only exists when you have scrolled away from the tail. The
+   log itself never moves under you — see LogAppend in bundle.js. */
+.flash-jump { display: none; margin-top: var(--space-2); }
+.iot-flashlog.is-adrift .flash-jump { display: block; }
+.iot-flashlog .z-logs-list { font-size: 12px; }

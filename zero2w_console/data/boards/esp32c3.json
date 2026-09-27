@@ -1,0 +1,315 @@
+{
+  "board": "esp32c3",
+  "label": "ESP32-C3",
+  "chip": "ESP32-C3",
+  "family": "esp32",
+  "cores": 1,
+  "voltage": "3.3",
+  "flash_default_mb": 4,
+  "source": "ESP32-C3 TRM ch.5; ESP32-C3 Datasheet \u00a72.2; C3-MINI-1 Datasheet \u00a72.2",
+  "peripherals": {
+    "wifi": true,
+    "ble": true,
+    "usb": "native",
+    "psram": false,
+    "camera": false,
+    "touch": false,
+    "dac": false
+  },
+  "buses": {
+    "i2c": {
+      "sda": 8,
+      "scl": 9,
+      "note": "no fixed pins \u2014 the GPIO matrix routes it"
+    },
+    "spi": {
+      "mosi": 7,
+      "miso": 2,
+      "sck": 6,
+      "cs": 10,
+      "note": "SPI2 default"
+    },
+    "uart0": {
+      "tx": 21,
+      "rx": 20
+    }
+  },
+  "pins": [
+    {
+      "gpio": 0,
+      "name": "GPIO0",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 1,
+      "name": "GPIO1",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 2,
+      "name": "GPIO2",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 3,
+      "name": "GPIO3",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 4,
+      "name": "GPIO4",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc1",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 5,
+      "name": "GPIO5",
+      "caps": [
+        "in",
+        "out",
+        "pwm",
+        "adc2",
+        "rtc"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "ADC2, which cannot be read while WiFi is on"
+    },
+    {
+      "gpio": 6,
+      "name": "GPIO6",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 7,
+      "name": "GPIO7",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 8,
+      "name": "GPIO8",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 9,
+      "name": "GPIO9",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": true,
+      "note": "strapping pin \u2014 its level at reset changes how the chip boots"
+    },
+    {
+      "gpio": 10,
+      "name": "GPIO10",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": null
+    },
+    {
+      "gpio": 11,
+      "name": "GPIO11",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 12,
+      "name": "GPIO12",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 13,
+      "name": "GPIO13",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 14,
+      "name": "GPIO14",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 15,
+      "name": "GPIO15",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 16,
+      "name": "GPIO16",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 17,
+      "name": "GPIO17",
+      "caps": [],
+      "usable": false,
+      "input_only": false,
+      "strapping": false,
+      "note": "wired to the SPI flash \u2014 not available"
+    },
+    {
+      "gpio": 18,
+      "name": "GPIO18",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "USB D+/D- \u2014 taking it breaks the native USB serial"
+    },
+    {
+      "gpio": 19,
+      "name": "GPIO19",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "USB D+/D- \u2014 taking it breaks the native USB serial"
+    },
+    {
+      "gpio": 20,
+      "name": "GPIO20",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "UART0, the serial console used for flashing"
+    },
+    {
+      "gpio": 21,
+      "name": "GPIO21",
+      "caps": [
+        "in",
+        "out",
+        "pwm"
+      ],
+      "usable": true,
+      "input_only": false,
+      "strapping": false,
+      "note": "UART0, the serial console used for flashing"
+    }
+  ],
+  "counts": {
+    "gpio": 22,
+    "usable": 15,
+    "adc": 6,
+    "output": 15
+  }
+}

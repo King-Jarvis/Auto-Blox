@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Sign in — Auto-Blox</title>
+<!-- Deliberately self-contained: this page is served to UNAUTHENTICATED
+     clients, so it loads no other asset. Colours are the design system's
+     token values, inlined. -->
+<style>
+  :root {
+    --surface-000:#0d1013; --surface-100:#14181d; --surface-300:#090b0e;
+    --hairline:#2f3741; --hairline-strong:#6a7380;
+    --ink:#e6eaef; --ink-muted:#9fabb8; --ink-faint:#7e8996;
+    --signal:#f0a23b; --on-signal:#1a1205; --critical:#f4626a; --focus:#5ccfe6;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --surface-000:#e7eaee; --surface-100:#ffffff; --surface-300:#eaeef2;
+      --hairline:#d3d9e0; --hairline-strong:#7f8894;
+      --ink:#121820; --ink-muted:#4c5764; --ink-faint:#606a77;
+      --signal:#9a5a00; --on-signal:#ffffff; --critical:#bc2530; --focus:#0d6a86;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--surface-000); color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:13px; line-height:19px; padding:16px;
+  }
+  .card {
+    width:100%; max-width:380px; background:var(--surface-100);
+    border:1px solid var(--hairline); border-radius:6px; padding:24px;
+  }
+  h1 {
+    margin:0 0 4px; font-size:20px; line-height:24px; font-weight:500;
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+  }
+  .sub { margin:0 0 24px; color:var(--ink-muted); font-size:13px; }
+  label {
+    display:block; margin-bottom:4px; font-size:11px; line-height:14px; font-weight:500;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted);
+  }
+  input {
+    width:100%; background:var(--surface-300); color:var(--ink);
+    border:1px solid var(--hairline-strong); border-radius:3px;
+    font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:14px;
+    padding:10px 8px; min-height:44px;
+  }
+  input:focus-visible, button:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+  button {
+    width:100%; margin-top:16px; min-height:44px; cursor:pointer;
+    background:var(--signal); color:var(--on-signal);
+    border:1px solid var(--signal); border-radius:3px;
+    font-family:inherit; font-size:14px; font-weight:500;
+  }
+  .help {
+    margin-top:24px; padding-top:16px; border-top:1px solid var(--hairline);
+    color:var(--ink-faint); font-size:11px; line-height:16px;
+  }
+  code {
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    color:var(--ink-muted); word-break:break-all;
+  }
+  .err { display:none; margin-top:12px; color:var(--critical); font-size:12px; }
+  .err.on { display:block; }
+</style>
+</head>
+<body>
+<main class="card">
+  <p class="sub">Auto-Blox</p>
+  <h1 id="host">auto-blox</h1>
+  <p class="sub">This console is token protected. Paste the token once — this
+     browser will remember it for a year.</p>
+  <form id="f">
+    <label for="t">Access token</label>
+    <input id="t" name="t" type="text" autocomplete="off" autocapitalize="off"
+           autocorrect="off" spellcheck="false" inputmode="text"
+           placeholder="paste token here" required>
+    <button type="submit">Open console</button>
+    <p class="err" id="err">That token was not accepted.</p>
+  </form>
+  <p class="help">
+    Find it on the board with:<br>
+    <code>cat ~/.config/zero2w-console/token</code>
+  </p>
+</main>
+<script>
+  document.getElementById("host").textContent = location.hostname;
+  if (/[?&]bad=1\b/.test(location.search)) document.getElementById("err").classList.add("on");
+  document.getElementById("f").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var v = document.getElementById("t").value.trim();
+    if (!v) return;
+    // Reuse the existing query-string path: a correct token sets the cookie.
+    location.href = "/?t=" + encodeURIComponent(v);
+  });
+</script>
+</body>
+</html>
