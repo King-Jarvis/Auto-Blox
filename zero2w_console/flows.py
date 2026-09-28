@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 
+from . import paths
 from . import buses
 from . import mqtt as mqttmod
 # One evaluator, in a file the device also pulls, so a formula cannot mean one
@@ -26,7 +27,7 @@ from . import bluetooth as btmod
 from . import gatt as gattmod
 from .agent.modules import blefmt
 
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "zero2w-console")
+CONFIG_DIR = paths.CONFIG_DIR
 # Where Save to SD keeps things on this board: its SD card, in plain sight.
 CAPTURES = os.path.join(os.path.expanduser("~"), "captures")
 FLOWS_FILE = os.path.join(CONFIG_DIR, "flows.json")
@@ -1339,7 +1340,7 @@ REGISTRY = {
         ],
         "fields": [
             _f("device", "Device", "combo", default="", options_from="devices",
-               placeholder="— any device —",
+               placeholder="— any device —", blank_ok=True,
                empty="No devices have enrolled yet."),
             _f("kind", "Kind", "text", default="",
                help="Match what the device's Tell the host node sends. "

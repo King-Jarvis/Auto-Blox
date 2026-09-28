@@ -78,7 +78,7 @@ class TestTheModulesAFlowPullsAreCounted(unittest.TestCase):
         from zero2w_console import examples, fleet as fleetmod
         f = fleetmod.Fleet(None, None, None)
         for fid in ("ex_motor_drive", "ex_motor_pad"):
-            flow = examples.by_id(fid)
+            flow = examples.wired(fid)
             names = f.agent_files(flow, {"board": "esp32"})
             self.assertIn("agent.py", names)
             self.assertIn("flow.py", names)
@@ -95,7 +95,7 @@ class TestTheModulesAFlowPullsAreCounted(unittest.TestCase):
         item 19). This counts source bytes only."""
         from zero2w_console import examples, fleet as fleetmod
         f = fleetmod.Fleet(None, None, None)
-        flow = examples.by_id("ex_motor_pad")
+        flow = examples.wired("ex_motor_pad")
         held = sum(len(f.module_source(n))
                    for n in f.agent_files(flow, {"board": "esp32"}))
         left = BOARD_FREE - held * BYTES_PER_CHAR

@@ -5,7 +5,8 @@ import re
 import threading
 import time
 
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "zero2w-console")
+from . import paths
+CONFIG_DIR = paths.CONFIG_DIR
 TAGS_FILE = os.path.join(CONFIG_DIR, "tags.json")
 
 # A name you can type into a field without quoting it, and read back later.

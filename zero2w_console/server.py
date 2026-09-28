@@ -17,6 +17,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+from . import paths
 from . import buses as busmod
 from . import flows as flowmod
 from . import gpio as gpiomod
@@ -27,11 +28,12 @@ from . import iot as iotmod
 from . import examples as examplemod
 from . import link as linkmod
 from . import tags as tagmod
+from . import themes as thememod
 from . import tlscert
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "zero2w-console")
+CONFIG_DIR = paths.CONFIG_DIR
 TOKEN_FILE = os.path.join(CONFIG_DIR, "token")
 
 CLK_TCK = os.sysconf("SC_CLK_TCK")
@@ -699,9 +701,10 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(401, "401 — append ?t=<token> to the URL.\n")
                 if bad:
                     body = body.replace(b'id="err"', b'id="err" class="err on"')
+                body = self._login_themed(body)
                 return self._send(401, body, "text/html; charset=utf-8")
             return self._send(401, "401 — append ?t=<token> to the URL.\n"
-                                   "The token is in ~/.config/zero2w-console/token\n")
+                                   "The token is in ~/.config/auto-blox/token\n")
 
         # A correct ?t= sets the cookie so later requests need no query string.
         extra = []
@@ -711,7 +714,21 @@ class Handler(BaseHTTPRequestHandler):
                       % self.server.cfg["token"])]
 
         if path == "/":
-            return self._file(os.path.join(STATIC, "index.html"), "text/html; charset=utf-8", extra)
+            return self._page("index.html", extra)
+        if path == "/theme.css":
+            wanted = (qs.get("id") or [None])[0]
+            return self._send(200, self._themes().stylesheet(wanted), "text/css; charset=utf-8", extra)
+        if path == "/api/themes":
+            return self._json(200, self._themes().listing(), extra)
+        if path == "/api/themes/template":
+            tpl = self._themes().template()
+            return self._send(200, json.dumps(tpl, indent=2) + "\n",
+                              "application/json; charset=utf-8", (extra or []) + [
+                                  ("Content-Disposition", 'attachment; filename="%s.json"'
+                                   % thememod.themecheck.slug(tpl["name"]))])
+        if path == "/api/themes/kit.zip":
+            return self._send(200, self._themes().kit(), "application/zip", (extra or []) + [
+                ("Content-Disposition", 'attachment; filename="auto-blox-theme.zip"')])
         if path == "/api/snapshot":
             snap = self.server.sampler.latest or self.server.collector.snapshot()
             return self._json(200, snap, extra)
@@ -728,11 +745,11 @@ class Handler(BaseHTTPRequestHandler):
             # One-shot tail, for snapshot mode and for clients that would rather poll.
             return self._json(200, recent_logs(40), extra)
         if path == "/flows":
-            return self._file(os.path.join(STATIC, "flows.html"), "text/html; charset=utf-8", extra)
+            return self._page("flows.html", extra)
         if path == "/iot":
-            return self._file(os.path.join(STATIC, "iot.html"), "text/html; charset=utf-8", extra)
+            return self._page("iot.html", extra)
         if path == "/cameras":
-            return self._file(os.path.join(STATIC, "cameras.html"), "text/html; charset=utf-8", extra)
+            return self._page("cameras.html", extra)
         if path == "/api/flows":
             return self._json(200, self.server.engine.doc, extra)
         if path in ("/api/flows/registry", "/api/flows/variables"):
@@ -887,6 +904,10 @@ class Handler(BaseHTTPRequestHandler):
             name = os.path.basename(path)
             full = os.path.join(STATIC, name)
             if os.path.realpath(full).startswith(os.path.realpath(STATIC)) and os.path.isfile(full):
+                if name == "login.html":
+                    with open(full, "rb") as fh:
+                        return self._send(200, self._login_themed(fh.read()),
+                                          "text/html; charset=utf-8", extra)
                 return self._file(full, self._ctype(name), extra)
         return self._send(404, "404\n")
 
@@ -919,6 +940,23 @@ class Handler(BaseHTTPRequestHandler):
             except iotmod.NetError as exc:
                 return self._json(400, {"error": str(exc)})
 
+        if route == "/api/themes":
+            theme_id, problems = self._themes().add(body)
+            if problems:
+                return self._json(400, {"error": "this theme was not imported",
+                                        "problems": problems})
+            return self._json(200, {"ok": True, "id": theme_id,
+                                    **self._themes().listing()})
+        if route in ("/api/themes/active", "/api/themes/delete"):
+            theme_id = str(body.get("id") or "")
+            store = self._themes()
+            done = (store.set_active if route.endswith("active") else store.delete)(theme_id)
+            if not done:
+                return self._json(404 if route.endswith("active") else 400,
+                                  {"error": "no theme %r to %s" % (
+                                      theme_id, "use" if route.endswith("active")
+                                      else "delete (the built-in ones stay)")})
+            return self._json(200, {"ok": True, **store.listing()})
         if route == "/api/flows":
             doc = body if isinstance(body, dict) and isinstance(body.get("flows"), list) else None
             if doc is None:
@@ -1178,6 +1216,32 @@ class Handler(BaseHTTPRequestHandler):
                 ".svg": "image/svg+xml", ".woff2": "font/woff2",
                 }.get(os.path.splitext(name)[1], "application/octet-stream")
 
+    def _themes(self):
+        store = getattr(self.server, "themes", None)
+        if store is None:
+            store = self.server.themes = thememod.ThemeStore(CONFIG_DIR)
+        return store
+
+    def _login_themed(self, body):
+        """No stylesheet can load before the token, so the sign-in page carries
+        the theme inline. It is only colours, fonts and radii."""
+        store = self._themes()
+        body = body.replace(b"/*THEME*/", store.inline().encode("utf-8"), 1)
+        return body.replace(b'data-theme="dark"', ('data-theme="%s"'
+                            % store.page_theme()).encode(), 1)
+
+    def _page(self, name, extra=None):
+        """A screen, served already in the theme in use, so it paints in it
+        rather than flashing dark first."""
+        try:
+            with open(os.path.join(STATIC, name), "rb") as fh:
+                body = fh.read()
+        except OSError:
+            return self._send(404, "404\n")
+        attr = 'data-theme="%s"' % self._themes().page_theme()
+        body = body.replace(b'data-theme="dark"', attr.encode(), 1)
+        return self._send(200, body, "text/html; charset=utf-8", extra)
+
     def _file(self, full, ctype, extra=None):
         try:
             with open(full, "rb") as fh:
@@ -1284,6 +1348,9 @@ def main():
     ap.add_argument("-v", "--verbose", action="store_true")
     a = ap.parse_args()
 
+    moved = paths.migrate()
+    if moved:
+        print("auto-blox: " + moved, flush=True)
     token = load_or_create_token()
     collector = Collector()
     bus = Bus()
@@ -1347,6 +1414,7 @@ def main():
     httpd.fleet = fleet
     httpd.bt_holds = {}              # characteristic path -> the session holding its subscription
     httpd.tags = tag_table
+    httpd.themes = thememod.ThemeStore(CONFIG_DIR)
     fleet.self_url = "http://127.0.0.1:%d" % a.port
     httpd.cfg = {"token": token, "auth": not a.no_auth,
                  "exec": not a.no_exec, "gpio_write": not a.no_gpio_write,

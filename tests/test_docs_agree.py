@@ -150,7 +150,7 @@ class TestTheDocsAgreeWithEachOther(unittest.TestCase):
             with self.subTest(doc=name):
                 self.assertNotIn("/etc/zero2w-console/flows.json", body,
                                  "%s puts flows under /etc; they live in "
-                                 "~/.config/zero2w-console" % name)
+                                 "~/.config/auto-blox" % name)
 
     def test_the_freshness_number_is_stated_once(self):
         """`flows.DEVICE_FRESH` is the only definition."""

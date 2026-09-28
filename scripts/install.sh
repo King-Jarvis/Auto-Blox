@@ -129,6 +129,6 @@ cat <<DONE
 Done. Log out and back in once, so $TARGET_USER picks up the new groups.
 
 The console is at http://$(hostname).local:8787/ (or this board's IP address).
-Its token is created on first start, in $TARGET_HOME/.config/zero2w-console/token;
+Its token is created on first start, in $TARGET_HOME/.config/auto-blox/token;
 open the page once as http://<address>:8787/?t=<token> and it remembers you.
 DONE

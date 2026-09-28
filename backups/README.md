@@ -1,4 +1,4 @@
-Where to keep snapshots of `~/.config/zero2w-console/flows.json`, taken before
+Where to keep snapshots of `~/.config/auto-blox/flows.json`, taken before
 anything that writes flows. `*.json` here is ignored by git: they are your
 flows, so they stay on this machine and out of anything you share.
 
@@ -9,7 +9,7 @@ overwrite whatever is there.
 
 Restore one with:
 
-    curl -H "X-Console-Token: $(cat ~/.config/zero2w-console/token)" \
+    curl -H "X-Console-Token: $(cat ~/.config/auto-blox/token)" \
          -H 'Content-Type: application/json' -X POST \
          http://localhost:8787/api/flows --data-binary @flows-XXXX.json
 

@@ -54,6 +54,11 @@ zero2w_console/          the application package, stdlib only
   fleet.py               the device link: enrol, manifest, commands, frames
   tags.py                the tag table: shared memory, host and fleet
   examples.py            the example flows, built in code and checked by tests
+  themes.py              imported themes: store, /theme.css, the sign-in page's
+                         inline theme, the kit zip
+  themecheck.py          a theme file's shape and readability; stdlib only, and
+                         shipped in the kit as check_theme.py
+  theme_kit/             the Claude skill (SKILL.md, preview.html, example.json)
   pixels.py              sensor frames into PNG, rotation, with zlib
   link.py                the held-open socket per device, host side. Started
                          by server.py on 8789 unless --no-link; fleet.push()
@@ -166,6 +171,9 @@ that is what gives it hardware and journal access regardless of login session.
 | `POST /api/iot/groups` | replace every group — named lists of devices, read back with `/api/iot/devices` |
 | `GET /api/iot/devices/…/{pins,camera.png}` | what it is doing, and what it sees |
 | `POST /api/iot/{enroll,state,event}`, `GET /api/iot/{manifest,commands}` | **device token only** — see "How a device and this board actually talk" below |
+| `GET /theme.css` | the imported theme in use (empty for Dark/Light); `?id=` any saved one, for `?theme=` previews |
+| `GET /api/themes`, `/api/themes/template`, `/api/themes/kit.zip` | the themes and which is active; the active one as a template; the theme kit |
+| `POST /api/themes`, `/api/themes/active`, `/api/themes/delete` | import one (400 with `problems`), use one, delete one |
 | `GET /healthz` | the only unauthenticated route |
 
 ### How a device and this board actually talk
@@ -216,7 +224,7 @@ poll starves the flow, a 1500ms work window between host calls, and a device cou
 it has been heard from inside `flows.DEVICE_FRESH` (90s — one constant, read
 by both the screens and `{{device.online}}`).
 
-**Auth:** a token at `~/.config/zero2w-console/token` (0600), passed as
+**Auth:** a token at `~/.config/auto-blox/token` (0600), passed as
 `?t=` once or an `X-Console-Token` header; the server then sets a year-long
 cookie. An unauthenticated browser gets a self-contained sign-in page; curl and
 `/api/*` get a plain-text 401.
@@ -285,8 +293,15 @@ exist: it cannot invent one or reach one this board keeps to itself.
 in `CATALOGUE`. They are built in code rather than stored as JSON so that
 positions are computed and `tests/test_examples.py` can check every node type,
 config key, dropdown value and edge against the registry — an example that no
-longer loads is worse than no example. They are added **switched off**,
-because the pins in one are a guess about someone else's board.
+longer loads is worse than no example. They are added **switched off**, with
+every pin, device, Bluetooth device and called flow **empty**: `_n()` blanks
+those fields itself (`examples.blanks()`), and the editor marks each node still
+waiting ("choose a pin") and counts them on the flow card. `examples.BENCH` and
+`wired()` fill the pins for the tests that drive a stub board, and
+`scripts/demo.py` fills the rest for the screenshots. Each has a `step` (1–7,
+`STEPS` names them) and the catalogue runs in step order. The tests hold every
+node type to appearing somewhere, each `about` to two plain sentences under
+280 characters, and any node label an `about` names to being in that flow.
 
 **Add a screen** → a page in `static/`, a route beside `/iot` in `server.py`,
 an entry in `nav.js`'s `screens()`, and the page in the tuple in
@@ -320,9 +335,21 @@ missing and how to enable it.
   `pinToGpio_ZERO_2_W` in orangepi-xunlong/wiringOP. 28 GPIO on banks PC/PH/PI.
   **Never hand-write these numbers.**
 - **The colour palette was computed, not chosen.** Hand-picked values failed
-  the colourblind-separation and contrast checks and were re-derived. All 80
-  text/ground pairs hold WCAG in both themes. Re-run the checks if you change a
-  value.
+  the colourblind-separation and contrast checks and were re-derived. The checks
+  now live in `zero2w_console/themecheck.py` and `tests/test_themes.py` runs
+  them on Dark and Light. The first Light passed every text pair and still read
+  as a blinding white sheet: panels 1.2:1 on the page, the canvas grid 1.00:1.
+  So the checker also holds **structure**: hairlines and grid visible against
+  their surfaces, and no surface brighter than about `#eeeeee`.
+- **A theme is values, never CSS, and belongs to the console.** An imported
+  theme sets 27 `#rrggbb` colours, two fonts from a list, three radii and a
+  shadow word. `themes.py` writes the CSS from those, so a file from anywhere
+  cannot put code on the page. The active theme is saved in
+  `~/.config/auto-blox/theme.json`, not in a browser. Pages are served with
+  `data-theme` already set, which means no flash, and the sign-in page gets it
+  inline, since no stylesheet loads before the token. No static file may write
+  a colour of its own (`test_no_page_writes_a_colour_of_its_own`). Text on a
+  photograph is the one marked exception.
 - **Unknown `{{variables}}` are left verbatim** in output rather than becoming
   empty, so a typo is visible.
 - **Honest capability reporting.** Everything unavailable says precisely what
@@ -830,7 +857,7 @@ Anything that asks "is it alive" says yes. Do not trust that.
 - `pkill -f <pattern>` matches the *shell running it* if the pattern appears in
   its command line. This killed the session five times. Match on
   `pgrep -x python3` plus an exact cmdline check.
-- **A second console started for testing shares `~/.config/zero2w-console`**,
+- **A second console started for testing shares `~/.config/auto-blox`**,
   so it writes the *live* flow document — and `scripts/sim-device.py` posts a
   flow document with no `rev`, which is a blind overwrite. That is how four
   real flows were lost in one command. Give a test instance its own config:
@@ -847,12 +874,15 @@ Anything that asks "is it alive" says yes. Do not trust that.
   script throws on line one compiles perfectly and renders nothing**, so
   `scripts/check-pages.py` drives the real pages in Chromium — desktop and
   phone — and fails on any exception, console error, missing nav, sideways
-  overflow or tab that does not follow its hash. It needs a listening server,
-  so it is a script rather than part of `unittest discover`:
+  overflow, tab that does not follow its hash, or **text under 4.5:1 against
+  what is actually behind it**. `--themes` runs it all in Dark, Light and a
+  loud test theme (`LOUD`, imported for the run and deleted after), which is
+  what finds a colour no theme can reach. It needs a listening server, so it
+  is a script rather than part of `unittest discover`:
 
   ```
-  python3 scripts/demo.py --serve        # prints: demo: ready http://127.0.0.1:<port>
-  python3 scripts/check-pages.py http://127.0.0.1:<port> --shots=/tmp/shots
+  python3 scripts/demo.py --serve        # prints: demo: console at http://127.0.0.1:<port>
+  python3 scripts/check-pages.py http://127.0.0.1:<port> --themes --shots=/tmp/shots
   ```
 
   It found three real bugs the compile check could not see. Its tab list
@@ -908,7 +938,7 @@ variables resolving live readings, the dashboard, the studio.
   cable.
 
 **The node library, rebuilt.** 53 node types (44 runnable on a device), 50
-variables, 19 examples. `docs/NODE-LIBRARY.md` holds the brief, what is built and
+variables, 28 examples. `docs/NODE-LIBRARY.md` holds the brief, what is built and
 what is not. Those four counts are checked against the registry by
 `tests/test_docs_agree.py`, because a document that states a number nothing
 verifies is a document that is wrong within the week — which is why the test
@@ -1310,5 +1340,8 @@ and the four things that turned out not to be the problem.
 - Status is never colour alone — always a colour plus a word.
 - Every widget names its real data source in its subtitle.
 - Anything privileged is handed to the user as one command, never attempted.
-- Flows live in `~/.config/zero2w-console/flows.json`, written atomically.
+- Flows live in `~/.config/auto-blox/flows.json`, written atomically. The
+  folder was `~/.config/zero2w-console` until the rename. `paths.migrate()` moves
+  it on the first start and leaves the old name as a symlink to the new one;
+  `paths.token_file()` is how a script finds the token either side of that.
   **Back it up before testing anything that writes flows.**

@@ -36,7 +36,10 @@ def main():
     ]
 
     def emit_theme_block(selector, theme):
-        rows = []
+        # Which way the browser draws its own parts: scrollbars, date pickers,
+        # the checkbox tick. A theme's id is its scheme unless it says otherwise.
+        scheme = {t["id"]: t.get("scheme", t["id"]) for t in d["color"]["themes"]}[theme]
+        rows = ["  color-scheme: %s;" % scheme]
         for tok in d["color"]["tokens"]:
             val = theme_value(tok, theme, first)
             if val:

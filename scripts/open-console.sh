@@ -4,7 +4,9 @@
 set -euo pipefail
 
 PORT="${ZERO2W_PORT:-8787}"
-TOKEN_FILE="$HOME/.config/zero2w-console/token"
+TOKEN_FILE="$HOME/.config/auto-blox/token"
+# Before the console's first start since the rename, it is still here.
+[[ -r "$TOKEN_FILE" ]] || TOKEN_FILE="$HOME/.config/zero2w-console/token"
 URL="http://localhost:${PORT}/"
 
 if [[ -r "$TOKEN_FILE" ]]; then

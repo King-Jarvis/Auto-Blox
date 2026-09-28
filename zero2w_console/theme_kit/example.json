@@ -1,0 +1,18 @@
+{
+  "format": "auto-blox-theme/1",
+  "name": "Asphalt and gold",
+  "base": "dark",
+  "colors": {
+    "surface-000": "#141516", "surface-100": "#1d1f21", "surface-200": "#272a2d", "surface-300": "#0e0f10",
+    "hairline": "#3b3e42", "hairline-strong": "#787c82",
+    "ink": "#eeede8", "ink-muted": "#b5b2aa", "ink-faint": "#949189",
+    "signal": "#dcb35b", "signal-wash": "#3b3220", "on-signal": "#1d1706", "link": "#93c3d8",
+    "ok": "#6fc79c", "warn": "#e5c653", "serious": "#ea9152", "critical": "#f26f6c",
+    "ok-wash": "#16332a", "warn-wash": "#383017", "critical-wash": "#40201f",
+    "series-1": "#6ea8ea", "series-2": "#4fc0a5", "series-3": "#d99a3d", "series-4": "#c47ecb",
+    "grid": "#2b2e31", "focus-ring": "#93c3d8", "scrim": "#070707"
+  },
+  "fonts": {"ui": "Space Grotesk", "mono": "JetBrains Mono"},
+  "radius": {"sm": 4, "md": 8, "lg": 12},
+  "shadow": "deep"
+}

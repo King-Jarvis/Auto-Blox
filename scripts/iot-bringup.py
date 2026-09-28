@@ -12,10 +12,10 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from zero2w_console import iot  # noqa: E402
+from zero2w_console import iot, paths  # noqa: E402
 
 CONSOLE = os.environ.get("ZERO2W_URL", "http://127.0.0.1:8787")
-TOKEN_FILE = os.path.expanduser("~/.config/zero2w-console/token")
+TOKEN_FILE = paths.token_file()
 
 OK, BAD, DOT = "✓", "✗", "·"
 

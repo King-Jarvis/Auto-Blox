@@ -9,7 +9,7 @@
 # the install step itself. It puts the code in ~/auto-blox (AUTOBLOX_DIR to
 # change that) and runs scripts/install.sh from there. Run it again to update:
 # a git checkout is pulled; a downloaded copy is replaced, keeping backups/.
-# Everything the console stores lives in ~/.config/zero2w-console, not here.
+# Everything the console stores lives in ~/.config/auto-blox, not here.
 #
 # Everything is inside main(), called on the last line, so a download cut off
 # halfway runs nothing.

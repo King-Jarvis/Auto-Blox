@@ -71,7 +71,10 @@ options after `--`, asking sudo for your password. Leave the options off for
 the console alone. Run the same command again to update: a git checkout is
 pulled, a downloaded copy is replaced (keeping `backups/`, and the old copy in
 `~/auto-blox.previous`). Your settings and flows live in
-`~/.config/zero2w-console` and are never touched by an update.
+`~/.config/auto-blox` and are never touched by an update. (Older versions
+kept them in `~/.config/zero2w-console`. The first start of this one moves the
+folder across and leaves that name as a link to the new one, so enrolled boards,
+the token and every flow carry on as they were.)
 
 Or by hand, from a clone:
 
@@ -100,7 +103,7 @@ checkout. `scripts/install.sh --render DIR` writes the filled-in units to
 `DIR` without installing anything, to check them before installing.
 
 Then open `http://<board>:8787/?t=<token>` with the token from
-`~/.config/zero2w-console/token`.
+`~/.config/auto-blox/token`.
 
 ## Running it by hand
 
@@ -121,7 +124,7 @@ virtualenv, no lockfile, no build step.
 ## Access
 
 The token is generated on first run and stored `0600` at
-`~/.config/zero2w-console/token`. Append it as `?t=<token>` once and the server
+`~/.config/auto-blox/token`. Append it as `?t=<token>` once and the server
 sets a cookie, so later visits need no query string.
 
 | From | URL |
@@ -229,6 +232,24 @@ not need re-firing to stay on. Toggle stops it if it is already running.
 hardware. That field, and the pulse width, only appear when the action is
 `pulse` — fields that cannot apply are hidden rather than shown greyed out.
 
+**Examples.** The Examples button adds one of 28 example flows, arranged as a
+course from a blinking pin to a two-wheel drive. Between them they use every
+node, and each explains itself in two sentences:
+
+| Step | Examples |
+| --- | --- |
+| 1 First steps | Blink a pin · A button lights a light · Say something by hand · Act a moment later |
+| 2 Deciding | Drive a pin from the network · A button that latches · On the third press · Say something when the board is hot · Only if it stays that way |
+| 3 Sensors and buses | What is on the I2C bus · A sensor that drives a pump · React to a tag · Send bytes to a chip |
+| 4 The network | Ask a website · Convert it over MQTT · Housekeeping |
+| 5 Boards and the host | Heartbeat · Heartbeat watch · A device reports, this board answers · A Bluetooth sensor |
+| 6 Cameras | A camera that runs when something moves · A picture a minute · Pictures from the field |
+| 7 Machines | Fill, heat, drain · Motor bench · Arm before it drives · Motor drive · Motor drive from a controller |
+
+An example arrives switched off with its pins and devices empty. Each node
+still waiting says "choose a pin" (or a device) on the canvas, and the flow card
+counts them.
+
 Editor: `Ctrl`/`Cmd`+`Z` undoes and `Ctrl`+`Shift`+`Z` (or `Ctrl`+`Y`) redoes, up
 to 60 steps. Undo snapshots the whole document, so it is exact rather than an
 inverse-operation guess.
@@ -250,7 +271,7 @@ killed, so the waveform costs no Python in the loop (1–5000 Hz). *Hardware* us
 The **Buses** panel in the right-hand pane probes what this board can do right
 now and names exactly what is missing for anything unavailable.
 
-Flows are stored in `~/.config/zero2w-console/flows.json` and written
+Flows are stored in `~/.config/auto-blox/flows.json` and written
 atomically. Saving reloads the engine, which re-arms every trigger.
 
 **Concurrent edits cannot silently overwrite each other.** The document carries
@@ -357,7 +378,7 @@ A webhook node listens at `POST /api/hook/<path>` and needs the console token
 like every other route:
 
 ```bash
-curl -H "X-Console-Token: $(cat ~/.config/zero2w-console/token)" \
+curl -H "X-Console-Token: $(cat ~/.config/auto-blox/token)" \
      -H 'Content-Type: application/json' \
      -d '{"payload":"hello"}' http://localhost:8787/api/hook/ping
 ```
@@ -440,6 +461,54 @@ Running it by hand instead requires a shell you have logged into *since* the
 group was added. `python3 -m zero2w_console.gpio` reports which of these
 situations you are in.
 
+## Themes
+
+| | |
+|---|---|
+| ![Light](docs/screenshots/theme-light.png) **Light** — a grey page with off-white panels, not a white sheet. | ![A theme of your own](docs/screenshots/theme-custom.png) **Your own** — "Asphalt and gold", designed with Claude from a photo of a toy car. |
+
+**Theme** in the top bar sets the look of the whole console: Dark, Light, or
+one you imported. The choice is saved on the board, so every browser and phone
+shows it, including the sign-in page, and pages load already wearing it.
+
+**Design one with Claude.** Theme → **Download the theme kit** gives you
+`auto-blox-theme.zip`. It is a Claude skill: upload it to claude.ai (Settings →
+Capabilities → Skills) or attach it to a chat, or unzip it into
+`~/.claude/skills/` for Claude Code. Then give Claude photos, a mood or a
+palette and ask for a theme. The kit contains:
+
+- **Instructions** (`SKILL.md`) for how to build a theme.
+- **A template** (`template.json`) holding your current theme.
+- **A colour reference** (`TOKENS.md`): every colour, what it is for, and the
+  rules it must pass.
+- **The checker** (`check_theme.py`), the same one the console uses.
+- **A preview** (`preview.html`): a mock of the console to show the theme in.
+- **A worked example** (`example.json`).
+
+Claude checks its work until it passes, shows the preview, and gives you one
+`.json` file. Import it with Theme → **Import a theme…**; it switches straight
+to it. Importing a theme with the same name again replaces it, so you can go
+back and forth.
+
+**What a theme can hold.** A theme file is values, never CSS:
+
+- **Colours:** 27 `#rrggbb` colours.
+- **Fonts:** two, each picked from a list.
+- **Radii:** three, in pixels up to 16.
+- **Shadow:** a depth of none, soft or deep.
+
+`zero2w_console/themecheck.py` refuses anything else, and anything hard to read:
+
+- text under WCAG 4.5:1 on any surface it sits on;
+- chart lines and control outlines under 3:1;
+- panels you cannot tell from the page;
+- a canvas grid you cannot see;
+- a surface brighter than about `#eeeeee`;
+- chart series too close in hue.
+
+A refused import lists each problem, ready to take back to Claude. Themes live
+in `~/.config/auto-blox/themes/`.
+
 ## Editing the design tokens
 
 ```
@@ -448,9 +517,18 @@ python3 scripts/build_tokens.py
 ```
 
 That regenerates `zero2w_console/static/tokens.css`. Refresh the browser;
-nothing else changes.
-Colours and contrast in that file were solved numerically — if you change a
-value, re-check text against its grounds in both themes before trusting it.
+nothing else changes. The built-in Dark and Light themes are these tokens, and
+`tests/test_themes.py` holds both to the same checker an imported theme passes:
+
+```
+python3 -m zero2w_console.themecheck my-theme.json
+```
+
+No page may write a colour of its own; a test fails on any hex, `rgb()` or
+`hsl()` outside `tokens.css`, so everything stays reachable by a theme.
+`scripts/check-pages.py --themes` (against `scripts/demo.py --serve`) measures
+the contrast of every piece of text on every screen in Dark, Light and a loud
+test theme.
 
 ## Repository layout
 
@@ -463,6 +541,9 @@ zero2w_console/                 the application package (stdlib only)
   mqtt.py                       minimal MQTT 3.1.1 client
   flows.py                      node registry and the host's flow runtime
   examples.py                   the example flows
+  themes.py                     imported themes: storage, /theme.css, the kit
+  themecheck.py                 a theme's shape and readability (also the kit's checker)
+  theme_kit/                    the Claude skill for designing a theme
   tags.py                       the tag table
   iot.py                        the radio, board profiles, device configs
   fleet.py                      devices: enrolment, manifests, commands
@@ -580,7 +661,7 @@ Three things, kept separate on purpose:
 | | What it is | Where it lives |
 | --- | --- | --- |
 | **Board profile** | a chip's pinout and peripherals, generated | `zero2w_console/data/boards/*.json` |
-| **Device config** | one physical board you own | `~/.config/zero2w-console/iot.json` |
+| **Device config** | one physical board you own | `~/.config/auto-blox/iot.json` |
 | **Flow** | drawn **for a profile**, deployed **to a config** | `flows.json` |
 
 **Plug in, scan, configure.** The Devices widget scans `/dev/ttyUSB*` and

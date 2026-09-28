@@ -1,7 +1,7 @@
 # Node library — the redesign brief
 
 **Status: the library is built; the open design questions in §4 are not.**
-53 node types, 44 of them runnable on a device, 50 variables, 19 examples —
+53 node types, 44 of them runnable on a device, 50 variables, 28 examples —
 counts checked against the registry by `tests/test_docs_agree.py`. Read
 `docs/ARCHITECTURE.md` and then `CONTEXT.md`; this assumes their conventions
 and constraints.
@@ -29,10 +29,13 @@ and constraints.
   field can read as `{{tag.name}}`, with a `tag.change` trigger. This is what
   lets flows compose without being wired together, and it is the thing the
   examples lean on hardest.
-- **19 examples** (`examples.py`), built in code and checked against the
-  registry by a test, added switched off. Four of them are the motor set —
-  bench, arm, two-wheel drive and drive-from-a-controller — which compose
-  through `drive_armed` rather than through wires.
+- **28 examples** (`examples.py`), built in code and checked against the
+  registry by a test, added switched off. They run as a course in seven steps,
+  from Blink a pin to the motor set, and between them use every node type.
+  Each explains itself in two plain sentences, and arrives with its pins and
+  devices empty for you to choose. The motor set (bench, arm, two-wheel drive
+  and drive-from-a-controller) composes through `drive_armed` rather than
+  through wires.
 - **The timer family**, as one `logic.timer` node with three behaviours:
   *wait until true for* (TON), *keep it true for* (TOF) and *one and then
   nothing for* (TP). Underneath is `_Scheduler`, one thread holding everything

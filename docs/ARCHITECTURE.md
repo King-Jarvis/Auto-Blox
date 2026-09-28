@@ -58,7 +58,7 @@ user as one command rather than attempted.
 Four screens, one design system (`static/bundle.js`): `/` the dashboard, `/flows`
 the Flow Studio, `/iot` the fleet, `/cameras` the wall.
 
-State lives in `~/.config/zero2w-console/` — `flows.json`, `iot.json`,
+State lives in `~/.config/auto-blox/` — `flows.json`, `iot.json`,
 `tags.json`, `token` — written atomically. Nothing application-level lives in
 `/etc`; only the privileged network config does.
 
@@ -67,7 +67,7 @@ State lives in `~/.config/zero2w-console/` — `flows.json`, `iot.json`,
 A flow is JSON: `{id, name, enabled, board?, device?, nodes[], edges[]}`. A node
 is `{id, type, config, x, y}`. `flows.REGISTRY` is the single source of truth for
 what a node type is — its fields, what it emits, whether it can run on a device.
-**53 node types, 44 of them runnable on a device, 50 variables, 19 examples.**
+**53 node types, 44 of them runnable on a device, 50 variables, 28 examples.**
 
 A message is `{"payload": ..., "meta": {...}}`. Nodes pass messages along edges;
 `{{payload}}`, `{{meta.x}}` and `{{tag.name}}` are rendered in any field.
@@ -222,7 +222,7 @@ column. They exist because each row was once two answers.
 ### The HTTP API
 
 Two credentials, deliberately unequal. **The console token**
-(`~/.config/zero2w-console/token`) as `X-Console-Token:` or `?t=`, for everything
+(`~/.config/auto-blox/token`) as `X-Console-Token:` or `?t=`, for everything
 a browser does. **A device token** as `X-Device-Token:`, which reaches only
 `/api/iot/{manifest,commands,module/*,enroll,state,event}` — a compromised board
 cannot read the fleet or write a flow.

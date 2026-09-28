@@ -225,6 +225,35 @@
     return out;
   }
 
+  /* The dropdowns still waiting for a choice: a pin, a device, a flow. The
+     examples arrive with these empty on purpose, and so does a new node, so the
+     node and its card say what is left rather than the run log saying later
+     that nothing happened. A field whose empty means something (Device event's
+     "any device") is not waiting for anything. */
+  var PICKED_FROM = ["devices", "ble_devices", "flows", "nodes_in_flow"];
+  function unchosen(n) {
+    var cfg = n.config || {};
+    return (def(n.type).fields || []).filter(function (fl) {
+      var v = cfg[fl.key];
+      if (v !== null && v !== undefined && String(v).trim() !== "") return false;
+      if (fl.blank_ok || !fieldApplies(n, fl)) return false;
+      return fl.kind === "pin" ||
+        (fl.kind === "combo" && PICKED_FROM.indexOf(fl.options_from) !== -1);
+    }).map(function (fl) { return fl.label.toLowerCase(); });
+  }
+  function unchosenIn(f) {
+    return (f.nodes || []).filter(function (n) { return unchosen(n).length; }).length;
+  }
+
+  /* Enabling is allowed — it is the author's flow — but not in silence. */
+  function warnUnchosen(f) {
+    var first = (f.nodes || []).filter(function (n) { return unchosen(n).length; })[0];
+    if (!first) return;
+    toast(def(first.type).label + " still needs a " + unchosen(first)[0] +
+          (unchosenIn(f) > 1 ? ", and " + (unchosenIn(f) - 1) + " more node" +
+           (unchosenIn(f) > 2 ? "s" : "") + " need setting up" : ""), "warn");
+  }
+
   function sortedFlows() {
     var list = S.doc.flows.slice();
     var q = S.filter.trim().toLowerCase();
@@ -504,6 +533,12 @@
     } else {
       trig.appendChild(Z.Badge({ text: "no trigger", tone: "warn" }));
     }
+    var todo = unchosenIn(f);
+    if (todo) {
+      trig.appendChild(Z.Badge({
+        text: todo + " node" + (todo === 1 ? "" : "s") + " to set up", tone: "warn"
+      }));
+    }
     card.appendChild(trig);
 
     var meta = el("div", "flow-card-meta");
@@ -517,7 +552,10 @@
     var acts = el("div", "flow-card-actions");
     acts.appendChild(Z.Button({
       label: on ? "Disable" : "Enable", size: "sm", variant: on ? "secondary" : "primary",
-      onClick: function () { snapshot(); f.enabled = !on; markDirty(); save(); renderList(); }
+      onClick: function () {
+        snapshot(); f.enabled = !on; markDirty(); save(); renderList();
+        if (!on) warnUnchosen(f);
+      }
     }));
     var man = manualNode(f);
     if (man) {
@@ -584,10 +622,15 @@
     }
     menu.appendChild(menuHeading("Add an example"));
     menu.appendChild(menuNote(
-      "Each one arrives switched off, because the pins and addresses in it "
-      + "are a guess about your board. Point it at your own hardware, then "
+      "They start simple and build up. Each arrives switched off with its "
+      + "pins and devices empty: choose yours from the dropdowns, then "
       + "enable it."));
+    var step = null;
     S.examples.forEach(function (ex) {
+      if (ex.step_name && ex.step_name !== step) {
+        step = ex.step_name;
+        menu.appendChild(menuHeading(ex.step + " \u00b7 " + step));
+      }
       var it = menuItem("", function () { close(); addExample(ex); });
       it.textContent = "";
       it.classList.add("var-item");
@@ -635,7 +678,9 @@
       markDirty();
       save();
       openEditor(id);
-      toast("added " + ex.name, "ok");
+      var todo = unchosenIn(flow);
+      toast("added " + ex.name + (todo ? " \u2014 " + todo + " node" +
+            (todo === 1 ? "" : "s") + " to set up" : ""), "ok");
     };
     if (!missing.length) return done();
     saveTags(S.tags.map(tagDef).concat(missing)).then(done);
@@ -782,6 +827,7 @@
           save().then(function (ok) {
             if (ok) toast((f.enabled === false ? "disabled " : "enabled ")
                           + (f.name || f.id), "ok");
+            if (ok && f.enabled !== false) warnUnchosen(f);
           });
         }
       }));
@@ -1052,7 +1098,8 @@
     var d = def(n.type);
     var box = el("div", "node" + (S.sel && S.sel.kind === "node" && S.sel.id === n.id ? " is-selected" : "") +
       (S.profile && !S.registry[n.type] ? " is-unsupported" : "") +
-      (S.activeSteps[f.id + "/" + n.id] ? " is-active" : ""));
+      (S.activeSteps[f.id + "/" + n.id] ? " is-active" : "") +
+      (unchosen(n).length ? " is-unchosen" : ""));
     box.style.left = n.x + "px";
     box.style.top = n.y + "px";
     box.dataset.id = n.id;
@@ -1069,6 +1116,8 @@
     box.appendChild(head);
 
     var body = el("div", "node-body");
+    var todo = unchosen(n);
+    if (todo.length) body.appendChild(el("div", "node-todo", "choose a " + todo.join(", ")));
     body.appendChild(summaryFor(n, d));
     box.appendChild(body);
 
@@ -2348,6 +2397,12 @@
         var other = (def(n.type).fields || []).filter(function (f) { return f.key === key; })[0];
         have = other ? other.default : undefined;
       }
+      // null means "once that field is set at all": Counter's Then only
+      // applies with a target, and a target of 0 is none.
+      if (want === null) {
+        if (have === null || have === undefined || String(have) === "" || Number(have) === 0) return false;
+        continue;
+      }
       if (want.indexOf(String(have)) === -1) return false;
     }
     return true;
@@ -2386,7 +2441,7 @@
     if (!token) {
       box.appendChild(el("p", "field-help",
         "Add ?t=<token> or an X-Console-Token header; the token is in " +
-        "~/.config/zero2w-console/token"));
+        "~/.config/auto-blox/token"));
     }
     return box;
   }

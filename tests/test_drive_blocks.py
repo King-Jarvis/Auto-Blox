@@ -676,7 +676,7 @@ class TestTheBenchFlowActuallyDrives(unittest.TestCase):
         sys.modules["modules.drive"] = drive
         sys.modules["modules.blocks"] = blocks
         from zero2w_console import examples
-        self.flow = examples.by_id("ex_motor_bench")
+        self.flow = examples.wired("ex_motor_bench")
 
         class Agent:
             tags = {}

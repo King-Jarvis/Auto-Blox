@@ -12,7 +12,8 @@ import subprocess
 import threading
 import time
 
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "zero2w-console")
+from . import paths
+CONFIG_DIR = paths.CONFIG_DIR
 DEVICES_FILE = os.path.join(CONFIG_DIR, "iot.json")
 
 # Written by the console, validated again by the helper before it is trusted.

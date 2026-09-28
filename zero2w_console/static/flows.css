@@ -285,7 +285,7 @@
 }
 .out-port { color: var(--ink-muted); }
 .out-stopped {
-  font-family: var(--font-mono); font-size: 10px; color: var(--status-warn);
+  font-family: var(--font-mono); font-size: 10px; color: var(--warn);
 }
 /* One row per field the node declares: what it is called, what type it is,
    what it is holding, and what it means. */
@@ -630,7 +630,7 @@ body.view-editor .index-view { display: none; }
 
 .drawer-scrim {
   display: none; position: fixed; inset: 0; z-index: 35;
-  background: var(--surface-000); opacity: var(--opacity-scrim);
+  background: var(--scrim); opacity: var(--opacity-scrim);
 }
 body.drawer-palette .drawer-scrim, body.drawer-side .drawer-scrim { display: block; }
 
@@ -787,6 +787,17 @@ body.drawer-palette .drawer-scrim, body.drawer-side .drawer-scrim { display: blo
   border-style: dashed;
   opacity: 0.85;
 }
+/* A pin or device still to be chosen. Dashed like the unsupported node but
+   in warn, with the words inside: colour alone never carries a state. */
+.node.is-unchosen { border-color: var(--warn); border-style: dashed; }
+.node-todo {
+  font: 500 11px/16px var(--font-ui);
+  color: var(--ink);
+  background: var(--warn-wash);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  margin-bottom: var(--space-1);
+}
 .side-warn {
   display: grid; gap: var(--space-1);
   padding: var(--space-3);
@@ -859,8 +870,8 @@ body.drawer-palette .drawer-scrim, body.drawer-side .drawer-scrim { display: blo
   width: min(360px, calc(100vw - 2 * var(--space-4)));
   background: var(--surface-200);
   border: var(--stroke-hairline) solid var(--hairline-strong);
-  border-radius: var(--radius-2);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
   padding: var(--space-3);
   display: grid; gap: var(--space-2);
   text-align: left; white-space: normal;

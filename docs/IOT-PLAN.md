@@ -223,7 +223,7 @@ Three objects, deliberately separate:
 | Object | What it is | Lives in |
 |---|---|---|
 | **Board profile** | a chip's pinout and peripherals — static, generated | `data/boards/*.json` |
-| **Device config** | one physical board: name, profile, network, token, deployed flow | `~/.config/zero2w-console/iot.json` |
+| **Device config** | one physical board: name, profile, network, token, deployed flow | `~/.config/auto-blox/iot.json` |
 | **Flow** | a graph authored **for a profile** (`board`), deployed **to a config** (`device`) | `flows.json` |
 
 One flow written for an ESP32-S3 can be deployed to any S3 you own. That is why
@@ -341,7 +341,7 @@ tests/test_iot.py                   profiles, manifest hashes, config validation
 docs/IOT-PLAN.md                    this file
 ```
 
-State lives beside the existing files: `~/.config/zero2w-console/iot.json`
+State lives beside the existing files: `~/.config/auto-blox/iot.json`
 (devices and their tokens, `0600`) and `/etc/zero2w-console/iot-net.json` (the
 network config the helper validates). Nothing in the repo holds a secret.
 

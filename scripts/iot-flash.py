@@ -25,7 +25,8 @@ from zero2w_console.serialport import RawREPL, VERIFY  # noqa: E402
 
 CACHE = os.path.expanduser("~/.cache/zero2w-console/firmware")
 CONSOLE = os.environ.get("ZERO2W_URL", "http://127.0.0.1:8787")
-TOKEN_FILE = os.path.expanduser("~/.config/zero2w-console/token")
+from zero2w_console import paths  # noqa: E402
+TOKEN_FILE = paths.token_file()
 
 # Which MicroPython board build belongs to which chip family.
 BUILDS = {

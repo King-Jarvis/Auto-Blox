@@ -554,6 +554,11 @@ def demo_flows():
     for f in flows:
         f.pop("runs_on", None)
         f.pop("unsupported", None)
+        f.pop("step_name", None)
+        # The examples arrive with pins and devices empty; the demo's bench
+        # has them all chosen, as a console someone has set up would.
+        examples.choose(f, dict(examples.BENCH.get(f["id"], {}),
+                                **DEMO_CHOICES.get(f["id"], {})))
     flows.append({
         "id": "demo_cam", "name": "Workbench camera",
         "about": "Pictures while the Interval keeps the feed on, sent to the "
@@ -578,6 +583,24 @@ def demo_flows():
     return flows
 
 
+# What the demo chose for the examples BENCH does not cover: host header pins
+# for the host flows, the demo camera and the demo sensor.
+_SENSOR = DEMO["pads"][1]["address"]
+DEMO_CHOICES = {
+    "ex_blink": {"p": {"gpio": 264}},
+    "ex_press": {"b": {"gpio": 263}, "o": {"gpio": 264}},
+    "ex_later": {"b": {"gpio": 263}, "o": {"gpio": 264}},
+    "ex_hook": {"on": {"gpio": 264}, "off": {"gpio": 264}},
+    "ex_latch": {"b": {"gpio": 263}, "o": {"gpio": 264}},
+    "ex_count": {"b": {"gpio": 263}},
+    "ex_timer": {"d": {"gpio": 263}, "m": {"gpio": 266}, "o": {"gpio": 264}},
+    "ex_pump": {"p": {"gpio": 265}},
+    "ex_shell": {"c": {"flow": "ex_hello", "node": "go"}},
+    "ex_fleet": {"c": {"device": "Workbench Cam"}},
+    "ex_ble": {k: {"device": _SENSOR} for k in ("link", "bat", "n", "w")},
+}
+
+
 def all_tags(flows):
     seen, out = set(), []
     for f in flows:
@@ -594,6 +617,10 @@ def start_boards(base, url, link_port, photo, ctx, log):
     doc = {"flows": demo_flows()}
     tags = all_tags(doc["flows"])
     api(url, "POST", "/api/tags", {"tags": tags})
+    # The theme kit's worked example, imported but not in use, so the
+    # screenshots can show a theme of someone's own (?theme=).
+    with open(os.path.join(ROOT, "zero2w_console", "theme_kit", "example.json")) as fh:
+        api(url, "POST", "/api/themes", json.load(fh))
     procs = []
     for spec in DEMO["boards"]:
         if spec.get("camera") and not photo:

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theme preview · Auto-Blox</title>
+<!-- A stand-in for the Auto-Blox dashboard, drawn with the same custom
+     properties the real one uses. Replace the JSON in <script id="theme"> with
+     a theme and open this page: every colour, font, radius and shadow in the
+     theme appears somewhere below. -->
+<script id="theme" type="application/json">
+{"format": "auto-blox-theme/1", "name": "Dark", "base": "dark",
+ "colors": {"surface-000": "#0d1013", "surface-100": "#14181d", "surface-200": "#1c2127",
+  "surface-300": "#090b0e", "hairline": "#2f3741", "hairline-strong": "#6a7380",
+  "ink": "#e6eaef", "ink-muted": "#9fabb8", "ink-faint": "#7e8996", "signal": "#f0a23b",
+  "signal-wash": "#3a2a12", "on-signal": "#1a1205", "link": "#5ccfe6", "ok": "#3fc08d",
+  "warn": "#e0b341", "serious": "#f08a4b", "critical": "#f4626a", "ok-wash": "#11312a",
+  "warn-wash": "#332a12", "critical-wash": "#3d1a1e", "series-1": "#3f93f7",
+  "series-2": "#0baa92", "series-3": "#d27900", "series-4": "#ca66c3", "grid": "#202730",
+  "focus-ring": "#5ccfe6", "scrim": "#07090c"},
+ "fonts": {"ui": "IBM Plex Sans", "mono": "IBM Plex Mono"},
+ "radius": {"sm": 3, "md": 6, "lg": 10}, "shadow": "soft"}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-000); color: var(--ink);
+    font-family: var(--font-ui); font-size: 13px; line-height: 19px;
+  }
+  .mono { font-family: var(--font-mono); }
+  .dock {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin: 16px; padding: 8px 12px; background: var(--surface-200);
+    border: 1px solid var(--hairline); border-radius: var(--radius-md);
+  }
+  .dock .host { font-family: var(--font-mono); font-weight: 600; }
+  .dock .host small { display: block; font-weight: 400; color: var(--ink-faint); font-size: 11px; }
+  .nav { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+  .nav span { padding: 4px 10px; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--ink-muted); font-weight: 500; }
+  .nav .on { color: var(--signal); background: var(--signal-wash); border-color: var(--signal); }
+  .live { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); }
+  .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--ok); display: inline-block; }
+  main { display: grid; gap: 12px; margin: 0 16px 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .w { background: var(--surface-100); border: 1px solid var(--hairline); border-radius: var(--radius-md); overflow: hidden; min-width: 0; }
+  .w.focus { box-shadow: var(--shadow-widget); border-color: var(--hairline-strong); }
+  .w h2 { margin: 0; padding: 8px 12px; background: var(--surface-200); border-bottom: 1px solid var(--hairline); font-size: 15px; line-height: 20px; font-weight: 600; }
+  .w h2 small { display: block; font-size: 12px; font-weight: 500; color: var(--ink-muted); font-family: var(--font-mono); }
+  .b { padding: 12px 16px; }
+  .readout { font-family: var(--font-mono); font-size: 32px; line-height: 36px; color: var(--signal); }
+  .readout small { font-size: 13px; color: var(--ink-muted); }
+  svg { display: block; width: 100%; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ink-muted); }
+  .legend i { display: inline-block; width: 10px; height: 3px; margin-right: 4px; vertical-align: middle; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .badge { font: 500 11px/16px var(--font-ui); letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border: 1px solid; border-radius: var(--radius-sm); }
+  .badge.ok { color: var(--ok); background: var(--ok-wash); border-color: var(--ok); }
+  .badge.warn { color: var(--warn); background: var(--warn-wash); border-color: var(--warn); }
+  .badge.crit { color: var(--critical); background: var(--critical-wash); border-color: var(--critical); }
+  .badge.idle { color: var(--ink-muted); border-color: var(--hairline-strong); }
+  .log { font-family: var(--font-mono); font-size: 12px; line-height: 18px; background: var(--surface-300); padding: 8px 12px; }
+  .log .t { color: var(--ink-faint); margin-right: 8px; }
+  .log .ok { color: var(--ok); } .log .warn { color: var(--warn); } .log .ser { color: var(--serious); } .log .crit { color: var(--critical); }
+  .canvas {
+    position: relative; height: 220px; background: var(--surface-000);
+    background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px); background-size: 20px 20px;
+  }
+  .node { position: absolute; width: 150px; background: var(--surface-100); border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); }
+  .node .h { padding: 6px 10px; border-left: 4px solid var(--series-1); font-weight: 600; border-bottom: 1px solid var(--hairline); }
+  .node .s { padding: 4px 10px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); }
+  .node.sel { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .node.todo { border: 1px dashed var(--warn); }
+  .todo-chip { margin: 4px 10px 0; padding: 0 4px; font-size: 11px; font-weight: 500; background: var(--warn-wash); color: var(--ink); border-radius: var(--radius-sm); }
+  .wire { position: absolute; inset: 0; pointer-events: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; font-weight: 500; color: var(--ink-muted); padding: 6px 12px; border-bottom: 1px solid var(--hairline-strong); background: var(--surface-200); }
+  td { padding: 6px 12px; border-bottom: 1px solid var(--hairline); }
+  td.m { font-family: var(--font-mono); color: var(--ink-faint); }
+  tr.hover td { background: var(--signal-wash); }
+  a { color: var(--link); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn { font: 500 13px var(--font-ui); padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline-strong); background: var(--surface-100); color: var(--ink); }
+  .btn.p { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+  .btn.g { background: none; border-color: transparent; color: var(--link); }
+  .btn.f { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  input { font: 13px var(--font-mono); padding: 6px 8px; background: var(--surface-300); color: var(--ink); border: 1px solid var(--hairline-strong); border-radius: var(--radius-sm); min-width: 0; }
+  input::placeholder { color: var(--ink-faint); }
+  .term { background: var(--surface-300); font-family: var(--font-mono); font-size: 12px; padding: 10px 12px; }
+  .term .p { color: var(--signal); }
+  .pic { position: relative; height: 150px; margin: 12px; border-radius: var(--radius-md); overflow: hidden;
+         background: linear-gradient(135deg, #6b7d5c, #3e4a3a 40%, #a88e6a); }
+  .pic .shade { position: absolute; top: 0; left: 0; right: 0; padding: 8px 12px; color: white; font-weight: 600;
+                background: linear-gradient(to bottom, color-mix(in srgb, var(--scrim) 60%, transparent), transparent); }
+  .menu { width: 240px; margin: 12px; padding: 8px; background: var(--surface-200); border: 1px solid var(--hairline-strong);
+          border-radius: var(--radius-lg); box-shadow: var(--shadow-float); }
+  .menu div { padding: 6px 8px; border-radius: var(--radius-sm); }
+  .menu .on { background: var(--signal-wash); font-weight: 600; }
+  .note { margin: 0 16px 24px; color: var(--ink-faint); font-size: 12px; }
+</style>
+</head>
+<body>
+<nav class="dock">
+  <div class="host">auto-blox<small>auto-blox.local:8787</small></div>
+  <div class="nav"><span class="on">Overview</span><span>Flows</span><span>IOT</span><span>Cameras</span></div>
+  <div class="live"><span class="dot"></span>LIVE 14:05:12</div>
+</nav>
+<main>
+  <section class="w focus">
+    <h2>Thermal<small>/sys/class/thermal</small></h2>
+    <div class="b">
+      <div class="readout">48.2<small> °C cpu</small></div>
+      <svg viewBox="0 0 300 90" preserveAspectRatio="none" aria-label="chart">
+        <g stroke="var(--grid)" stroke-width="1"><line x1="0" y1="22" x2="300" y2="22"/><line x1="0" y1="45" x2="300" y2="45"/><line x1="0" y1="68" x2="300" y2="68"/></g>
+        <polyline fill="none" stroke="var(--series-1)" stroke-width="2" points="0,50 30,46 60,48 90,40 120,42 150,35 180,38 210,30 240,34 270,28 300,31"/>
+        <polyline fill="none" stroke="var(--series-2)" stroke-width="2" points="0,60 30,58 60,59 90,55 120,56 150,52 180,54 210,49 240,51 270,47 300,49"/>
+        <polyline fill="none" stroke="var(--series-3)" stroke-width="2" points="0,70 30,69 60,71 90,66 120,67 150,64 180,66 210,62 240,63 270,60 300,62"/>
+        <polyline fill="none" stroke="var(--series-4)" stroke-width="2" points="0,78 30,77 60,76 90,75 120,76 150,73 180,74 210,72 240,73 270,71 300,72"/>
+      </svg>
+      <div class="legend"><span><i style="background:var(--series-1)"></i>cpu</span><span><i style="background:var(--series-2)"></i>gpu</span><span><i style="background:var(--series-3)"></i>ve</span><span><i style="background:var(--series-4)"></i>ddr</span></div>
+      <div class="badges"><span class="badge ok">ok</span><span class="badge warn">warn</span><span class="badge crit">critical</span><span class="badge idle">idle</span></div>
+    </div>
+  </section>
+  <section class="w">
+    <h2>Logs<small>journalctl -f</small></h2>
+    <div class="log">
+      <div><span class="t">14:05:02</span><span class="ok">OK</span> flow Heartbeat watch fired</div>
+      <div><span class="t">14:05:04</span><span class="warn">WARN</span> Rover Drive: rssi -78</div>
+      <div><span class="t">14:05:07</span><span class="ser">SERIOUS</span> cpu-thermal throttling</div>
+      <div><span class="t">14:05:09</span><span class="crit">CRITICAL</span> link down on wlan0</div>
+      <div><span class="t">14:05:11</span>stream opened for <a href="#">Workbench Cam</a></div>
+    </div>
+  </section>
+  <section class="w" style="grid-column: 1 / -1">
+    <h2>Flow studio<small>Motor drive — two wheels, live</small></h2>
+    <div class="canvas">
+      <svg class="wire" width="100%" height="220">
+        <path d="M170 60 C 230 60, 230 60, 280 60" fill="none" stroke="var(--hairline-strong)" stroke-width="2"/>
+        <path d="M430 60 C 490 60, 490 150, 540 150" fill="none" stroke="var(--ok)" stroke-width="2"/>
+      </svg>
+      <div class="node" style="left:20px;top:30px"><div class="h">Interval</div><div class="s">every=100</div></div>
+      <div class="node sel" style="left:280px;top:30px"><div class="h" style="border-left-color:var(--series-2)">If</div><div class="s">op=&gt;= value=0.5</div></div>
+      <div class="node todo" style="left:540px;top:120px"><div class="h" style="border-left-color:var(--series-4)">PWM output</div><div class="todo-chip">choose a pin</div><div class="s">duty={{payload}}</div></div>
+    </div>
+  </section>
+  <section class="w">
+    <h2>Devices<small>3 on the network</small></h2>
+    <table>
+      <tr><th>Name</th><th>Board</th><th>Signal</th></tr>
+      <tr><td>Rover Drive</td><td class="m">esp32</td><td>-61</td></tr>
+      <tr class="hover"><td>Workbench Cam</td><td class="m">esp32cam</td><td>-55</td></tr>
+      <tr><td>Garden Sensor</td><td class="m">esp32</td><td>-72</td></tr>
+    </table>
+  </section>
+  <section class="w">
+    <h2>Controls</h2>
+    <div class="b">
+      <div class="row"><button class="btn p">Enable</button><button class="btn">Disable</button><button class="btn g">Run</button><button class="btn f">Focused</button></div>
+      <div class="row" style="margin-top:12px"><input placeholder="filter flows"><input value="drive_speed"></div>
+    </div>
+    <div class="term"><span class="p">blox@auto-blox:~$</span> uptime<br>14:05:12 up 3 days, load average: 0.21</div>
+  </section>
+  <section class="w">
+    <h2>Cameras<small>Workbench Cam</small></h2>
+    <div class="pic"><div class="shade">Workbench · LIVE</div></div>
+  </section>
+  <section class="w">
+    <h2>Menu</h2>
+    <div class="menu"><div class="on">✓ This theme</div><div>Dark</div><div>Light</div><div style="color:var(--critical)">Delete</div></div>
+  </section>
+</main>
+<p class="note" id="note"></p>
+<script>
+(function () {
+  var t = JSON.parse(document.getElementById("theme").textContent);
+  var r = document.documentElement.style;
+  r.setProperty("color-scheme", t.base);
+  Object.keys(t.colors || {}).forEach(function (k) { r.setProperty("--" + k, t.colors[k]); });
+  var fallback = { ui: "ui-sans-serif, system-ui, sans-serif", mono: 'ui-monospace, "SFMono-Regular", monospace' };
+  var families = [];
+  ["ui", "mono"].forEach(function (role) {
+    var name = (t.fonts || {})[role] || (role === "ui" ? "IBM Plex Sans" : "IBM Plex Mono");
+    r.setProperty("--font-" + role, name === "System" ? fallback[role] : '"' + name + '", ' + fallback[role]);
+    if (name !== "System") families.push("family=" + name.replace(/ /g, "+") + ":wght@400;500;600");
+  });
+  if (families.length) {
+    var l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?" + families.join("&") + "&display=swap";
+    document.head.appendChild(l);
+  }
+  var rad = t.radius || {};
+  ["sm", "md", "lg"].forEach(function (k) { r.setProperty("--radius-" + k, (rad[k] != null ? rad[k] : { sm: 3, md: 6, lg: 10 }[k]) + "px"); });
+  var sh = {
+    "none dark": ["none", "none"], "none light": ["none", "none"],
+    "soft dark": ["0 1px 2px rgba(0,0,0,0.55)", "0 8px 24px rgba(0,0,0,0.70)"],
+    "soft light": ["0 1px 2px rgba(18,24,32,0.16)", "0 8px 24px rgba(18,24,32,0.24)"],
+    "deep dark": ["0 2px 6px rgba(0,0,0,0.70)", "0 14px 40px rgba(0,0,0,0.85)"],
+    "deep light": ["0 2px 6px rgba(18,24,32,0.26)", "0 14px 40px rgba(18,24,32,0.36)"]
+  }[(t.shadow || "soft") + " " + t.base] || ["none", "none"];
+  r.setProperty("--shadow-widget", sh[0]);
+  r.setProperty("--shadow-float", sh[1]);
+  document.title = t.name + " · Auto-Blox theme preview";
+  document.getElementById("note").textContent = "Previewing “" + t.name + "” (" + t.base +
+    "). Fonts load from Google Fonts when online; the dashboard falls back the same way offline.";
+})();
+</script>
+</body>
+</html>

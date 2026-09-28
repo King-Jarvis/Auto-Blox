@@ -34,7 +34,7 @@ class DriveCase(unittest.TestCase):
         for name, mod in (("drive", drive), ("blocks", blocks), ("expr", expr)):
             setattr(pkg, name, mod)
             sys.modules["modules." + name] = mod
-        self.flow = examples.by_id("ex_motor_drive")
+        self.flow = examples.wired("ex_motor_drive")
 
         test = self
 

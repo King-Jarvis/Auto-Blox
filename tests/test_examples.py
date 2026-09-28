@@ -1,5 +1,6 @@
 """The example flows, checked against the registry they are made of."""
 import os
+import re
 import sys
 import unittest
 
@@ -30,8 +31,7 @@ class TestTheCatalogue(unittest.TestCase):
                                    "an example has to say what it is showing")
 
     def test_they_all_arrive_switched_off(self):
-        """An example names pins that are a guess about someone else's
-        board."""
+        """Nothing in one points at your hardware until you choose it."""
         for ex in self.all:
             with self.subTest(example=ex["id"]):
                 self.assertFalse(ex["enabled"])
@@ -167,6 +167,68 @@ class TestTheyActuallyRun(unittest.TestCase):
                 self.assertTrue(engine.webhooks)
             finally:
                 engine._teardown()
+
+
+class TestTheyTeach(unittest.TestCase):
+    """What the Examples menu promises: short, true, in order, and between
+    them every node there is."""
+
+    def setUp(self):
+        self.all = examples.catalogue()
+
+    def test_every_node_type_appears_in_some_example(self):
+        used = {n["type"] for ex in self.all for n in ex["nodes"]}
+        self.assertEqual(set(flows.REGISTRY) - used, set())
+
+    def test_the_steps_only_go_up(self):
+        steps = [ex["step"] for ex in self.all]
+        self.assertEqual(steps, sorted(steps))
+        for ex in self.all:
+            self.assertEqual(ex["step_name"], examples.STEPS[ex["step"]])
+
+    def test_the_explanations_are_short_and_plain(self):
+        """The menu shows them as text, so markup would print literally."""
+        for ex in self.all:
+            with self.subTest(example=ex["id"]):
+                about = ex["about"]
+                self.assertLessEqual(len(about), 280)
+                self.assertLessEqual(len(re.findall(r"[.!?](\s|$)", about)), 2)
+                for mark in ("*", "`", "\n"):
+                    self.assertNotIn(mark, about)
+
+    def test_a_node_the_explanation_names_is_in_the_flow(self):
+        """"The Throttle lets one through" is only true with a Throttle in it.
+        Mid-sentence capitals are node names; the first word of a sentence is
+        not counted, since "If" there is English."""
+        labels = {spec["label"]: t for t, spec in flows.REGISTRY.items()}
+        for ex in self.all:
+            have = {flows.REGISTRY[n["type"]]["label"] for n in ex["nodes"]}
+            text = ex["about"]
+            for label in labels:
+                for m in re.finditer(r"(?<![\w-])%s(?![\w-])" % re.escape(label), text):
+                    before = text[:m.start()].rstrip()
+                    if not before or before[-1] in ".!?:;":
+                        continue
+                    with self.subTest(example=ex["id"], label=label):
+                        self.assertIn(label, have)
+
+    def test_pins_and_devices_arrive_empty(self):
+        """They are a guess about someone else's hardware; the dropdown asks."""
+        for ex in self.all:
+            for node in ex["nodes"]:
+                for key, blank in examples.blanks(node["type"]).items():
+                    with self.subTest(example=ex["id"], node=node["id"], field=key):
+                        self.assertEqual(node["config"].get(key), blank)
+
+    def test_the_bench_wiring_only_names_real_nodes(self):
+        for fid, picks in examples.BENCH.items():
+            ids = {n["id"] for n in examples.by_id(fid)["nodes"]}
+            with self.subTest(example=fid):
+                self.assertEqual(set(picks) - ids, set())
+                wired = examples.wired(fid)
+                for node in wired["nodes"]:
+                    if node["id"] in picks:
+                        self.assertEqual(node["config"]["gpio"], picks[node["id"]]["gpio"])
 
 
 if __name__ == "__main__":

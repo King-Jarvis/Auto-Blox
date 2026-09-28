@@ -8,9 +8,11 @@ import time
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from zero2w_console import paths  # noqa: E402
+
 BASE = os.environ.get("ZERO2W_URL", "http://127.0.0.1:8787")
-CONSOLE = (os.environ.get("ZERO2W_TOKEN")
-           or open(os.path.expanduser("~/.config/zero2w-console/token")).read().strip())
+CONSOLE = os.environ.get("ZERO2W_TOKEN") or open(paths.token_file()).read().strip()
 
 
 def call(method, path, body=None, token=None, device_token=None, timeout=40):

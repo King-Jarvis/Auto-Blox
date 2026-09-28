@@ -128,6 +128,8 @@ SCENES = [
     ("iot-boards", "/iot#boards", False, 5, None),
     ("cameras", "/cameras", False, 9, None),
     ("login", "/static/login.html", False, 3, None),
+    ("theme-light", "/?theme=light", False, 8, None),
+    ("theme-custom", "/flows?theme=asphalt-and-gold&flow=ex_motor_drive", False, 6, None),
     ("phone-overview", "/", True, 8, None),
     ("phone-flows", "/flows", True, 5, SORT),
     ("phone-iot", "/iot#devices", True, 5, None),
@@ -214,7 +216,9 @@ def real_identifiers():
     for path in glob.glob("/dev/serial/by-id/*"):
         add("serial port", os.path.basename(path))
 
-    cfg = os.path.join(home, ".config", "zero2w-console")
+    cfg = os.path.join(home, ".config", "auto-blox")
+    if not os.path.isdir(cfg):                  # not started since the rename
+        cfg = os.path.join(home, ".config", "zero2w-console")
     add("console token", _read(os.path.join(cfg, "token")))
     for d in (_json(os.path.join(cfg, "iot.json")) or {}).get("devices", []):
         add("console device", d.get("name"), d.get("id"), d.get("mac"), d.get("ip"),

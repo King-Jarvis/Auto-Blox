@@ -45,7 +45,7 @@ class PadCase(unittest.TestCase):
                           ("expr", expr), ("pad", padmod)):
             setattr(pkg, name, mod)
             sys.modules["modules." + name] = mod
-        self.flow = examples.by_id("ex_motor_pad")
+        self.flow = examples.wired("ex_motor_pad")
 
         test = self
 

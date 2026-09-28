@@ -24,8 +24,8 @@ class CostCase(unittest.TestCase):
         self.fleet = fleetmod.Fleet(self.devices, self.flows, None)
         self.device = iotmod.create_device(self.devices, {
             "name": "ESP32 Motor", "board": "esp32", "mac": "70:4b:ca:00:00:b8"})
-        self.motor = examples.by_id("ex_motor_drive")
-        self.blink = examples.by_id("ex_blink")
+        self.motor = examples.wired("ex_motor_drive")
+        self.blink = examples.wired("ex_blink")
 
     def record(self):
         return iotmod.get_device(self.devices, self.device["id"])

@@ -131,7 +131,9 @@
 /* ---- the setup steps ---------------------------------------------------- */
 /* A finished step is one line. The first unfinished one is open, because that
    is the thing to do next. */
-.iot-steps { display: grid; }
+/* minmax(0, 1fr), not the auto track: a summary is one ellipsed line, and an
+   auto column grows to its full length and pushes a phone sideways. */
+.iot-steps { display: grid; grid-template-columns: minmax(0, 1fr); }
 .iot-step { border-bottom: var(--stroke-hairline) solid var(--hairline); }
 .iot-step:last-child { border-bottom: none; }
 .iot-step-head {
@@ -192,7 +194,7 @@
   border-left: 2px solid var(--warn);
   background: var(--warn-wash);
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-sm);
 }
 
 .dev-card.is-clickable { cursor: pointer; }

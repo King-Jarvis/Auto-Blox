@@ -104,61 +104,218 @@
   }
 
   /* ---- theme ------------------------------------------------------------
-     Every screen gets the same switch. This lived in app.js, which only the
-     dashboard loads, so /flows and /iot had a light theme they could render but
-     no way to ask for. The stored key and the ?theme= override are unchanged. */
-  var THEME_KEY = "z2w-theme";
+     The theme belongs to the console, not the browser: it is saved on the Pi
+     and every page is served already wearing it (data-theme on <html>), so the
+     phone, the desktop and the sign-in page agree and nothing flashes. This
+     menu lists Dark, Light and anything imported, imports a theme file, and
+     hands out the kit for designing one with Claude. ?theme=dark|light|custom
+     shows one for this page load only, which is how the page checks run. */
+  var themes = { list: [], active: null };
+  var menuEl = null;
 
   function themeNow() {
-    return document.documentElement.getAttribute("data-theme") === "light"
-      ? "light" : "dark";
+    return document.documentElement.getAttribute("data-theme") || "dark";
   }
 
-  function labelFor(theme) { return theme === "light" ? "Dark" : "Light"; }
-
-  function paintButtons(theme) {
-    var btns = document.querySelectorAll("[data-theme-btn]");
-    Array.prototype.forEach.call(btns, function (b) {
-      if (b.lastChild) b.lastChild.textContent = labelFor(theme);
+  function api(path, body) {
+    var opts = body === undefined ? {} : {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    };
+    return fetch(path, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) { var e = new Error(j.error || ("HTTP " + r.status)); e.body = j; throw e; }
+        return j;
+      });
     });
   }
 
-  function setTheme(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    try { localStorage.setItem(THEME_KEY, theme); }
-    catch (e) { /* private mode: the choice just does not outlive the tab */ }
-    paintButtons(theme);
+  /* Swap the page to a theme without a reload: the built-in two are in
+     tokens.css already; an imported one is /theme.css, fetched again. */
+  function apply(id) {
+    var custom = id !== "dark" && id !== "light";
+    var link = document.querySelector('link[href^="/theme.css"]');
+    if (custom && link) link.href = "/theme.css?v=" + Date.now();
+    document.documentElement.setAttribute("data-theme", custom ? "custom" : id);
   }
 
-  function toggleTheme() { setTheme(themeNow() === "light" ? "dark" : "light"); }
+  function took(j) {
+    if (j && j.themes) { themes.list = j.themes; themes.active = j.active; }
+    return j;
+  }
 
-  /* ?theme=light|dark wins, so a link or the launcher can pick one. */
+  function useTheme(id) {
+    return api("/api/themes/active", { id: id }).then(took).then(function () {
+      apply(id);
+      if (menuEl) fillMenu(menuEl);
+    });
+  }
+
+  function closeMenu() {
+    if (!menuEl) return;
+    menuEl.remove(); menuEl = null;
+    document.removeEventListener("pointerdown", outside, true);
+    document.removeEventListener("keydown", onKey, true);
+  }
+  function outside(ev) {
+    if (menuEl && !menuEl.contains(ev.target) && !ev.target.closest("[data-theme-btn]")) closeMenu();
+  }
+  function onKey(ev) { if (ev.key === "Escape") closeMenu(); }
+
+  function item(text, onClick, cls) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "theme-item" + (cls ? " " + cls : "");
+    b.textContent = text;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  function fillMenu(menu, problems) {
+    menu.textContent = "";
+    var head = document.createElement("div");
+    head.className = "theme-head";
+    head.textContent = "Theme";
+    menu.appendChild(head);
+
+    themes.list.forEach(function (t) {
+      var on = t.id === themes.active;
+      var it = item((on ? "✓ " : "") + t.name, function () {
+        if (!on) useTheme(t.id).catch(function (e) { fillMenu(menu, [e.message]); });
+      }, on ? "is-on" : "");
+      it.setAttribute("aria-pressed", on ? "true" : "false");
+      if (!t.builtin) it.appendChild(tagSpan(t.base));
+      menu.appendChild(it);
+    });
+
+    var sep = document.createElement("div"); sep.className = "theme-sep"; menu.appendChild(sep);
+
+    var file = document.createElement("input");
+    file.type = "file"; file.accept = ".json,application/json"; file.hidden = true;
+    file.addEventListener("change", function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      f.text().then(function (text) {
+        var doc;
+        try { doc = JSON.parse(text); }
+        catch (e) { throw new Error("that file is not JSON: " + e.message); }
+        return api("/api/themes", doc);
+      }).then(took).then(function (j) {
+        return useTheme(j.id);
+      }).catch(function (e) {
+        fillMenu(menu, (e.body && e.body.problems) || [e.message]);
+      });
+    });
+    menu.appendChild(file);
+    menu.appendChild(item("Import a theme…", function () { file.click(); }));
+
+    var kit = document.createElement("a");
+    kit.className = "theme-item";
+    kit.href = "/api/themes/kit.zip";
+    kit.setAttribute("download", "auto-blox-theme.zip");
+    kit.textContent = "Download the theme kit";
+    kit.title = "A Claude skill: give it photos or a mood and it designs a theme to import here";
+    menu.appendChild(kit);
+
+    var mine = themes.list.filter(function (t) { return t.id === themes.active && !t.builtin; })[0];
+    if (mine) {
+      menu.appendChild(item("Delete " + mine.name, function () {
+        api("/api/themes/delete", { id: mine.id }).then(took).then(function () {
+          apply(themes.active); fillMenu(menu);
+        }).catch(function (e) { fillMenu(menu, [e.message]); });
+      }, "is-danger"));
+    }
+
+    if (problems && problems.length) {
+      var box = document.createElement("div");
+      box.className = "theme-problems";
+      box.setAttribute("role", "alert");
+      var lead = document.createElement("p");
+      lead.textContent = "Not imported. Take these back to Claude:";
+      box.appendChild(lead);
+      var ul = document.createElement("ul");
+      problems.slice(0, 12).forEach(function (p) {
+        var li = document.createElement("li"); li.textContent = p; ul.appendChild(li);
+      });
+      if (problems.length > 12) {
+        var more = document.createElement("li");
+        more.textContent = "and " + (problems.length - 12) + " more";
+        ul.appendChild(more);
+      }
+      box.appendChild(ul);
+      menu.appendChild(box);
+    }
+  }
+
+  function tagSpan(text) {
+    var t = document.createElement("span");
+    t.className = "theme-tag";
+    t.textContent = text;
+    return t;
+  }
+
+  function place(menu, btn) {
+    var r = btn.getBoundingClientRect();
+    var w = menu.offsetWidth, h = menu.offsetHeight, vw = innerWidth, vh = innerHeight;
+    var left = Math.max(8, Math.min(r.right - w, vw - w - 8));
+    var top = r.bottom + 6 + h <= vh - 8 ? r.bottom + 6 : Math.max(8, r.top - 6 - h);
+    menu.style.left = left + "px";
+    menu.style.top = top + "px";
+  }
+
+  function openMenu(btn) {
+    if (menuEl) { closeMenu(); return; }
+    menuEl = document.createElement("div");
+    menuEl.className = "theme-menu";
+    menuEl.setAttribute("role", "menu");
+    fillMenu(menuEl);
+    document.body.appendChild(menuEl);
+    place(menuEl, btn);
+    document.addEventListener("pointerdown", outside, true);
+    document.addEventListener("keydown", onKey, true);
+    api("/api/themes").then(took).then(function () {
+      if (menuEl) { fillMenu(menuEl); place(menuEl, btn); }
+    }).catch(function () { /* the menu still offers the built-in two */ });
+  }
+
+  function setTheme(id) { return useTheme(id); }
+
+  function toggleTheme() { return useTheme(themeNow() === "light" ? "dark" : "light"); }
+
+  /* ?theme=<id> shows that theme for this page load only; nothing is saved.
+     How the page checks run every screen in each theme. */
   function restoreTheme() {
-    var saved = null;
-    var m = /[?&]theme=(light|dark)\b/.exec(location.search);
-    if (m) saved = m[1];
-    if (!saved) {
-      try { saved = localStorage.getItem(THEME_KEY); } catch (e) { /* ignore */ }
+    // The choice used to live in this browser; it lives on the console now.
+    try { localStorage.removeItem("z2w-theme"); } catch (e) { /* ignore */ }
+    var m = /[?&]theme=([a-z0-9-]+)/.exec(location.search);
+    if (!m) return;
+    var id = m[1];
+    if (id !== "dark" && id !== "light") {
+      var link = document.querySelector('link[href^="/theme.css"]');
+      if (link) link.href = "/theme.css?id=" + encodeURIComponent(id);
     }
-    if (saved === "light" || saved === "dark") {
-      document.documentElement.setAttribute("data-theme", saved);
-    }
-    paintButtons(themeNow());
+    document.documentElement.setAttribute("data-theme", id === "dark" || id === "light" ? id : "custom");
   }
 
-  /* One switch, in the bar every screen already carries. The label is hidden on
-     a narrow dock, where the glyph has to speak for itself. */
+  /* One button, in the bar every screen already carries. The label is hidden
+     on a narrow dock, where the glyph has to speak for itself. */
   function themeButton() {
     var b = Z.Button({
-      label: labelFor(themeNow()), variant: "ghost", size: "sm",
+      label: "Theme", variant: "ghost", size: "sm",
       glyph: glyph("M8 2v2M8 12v2M2 8h2M12 8h2M4.5 4.5l1.5 1.5M10 10l1.5 1.5M11.5 4.5L10 6M6 10l-1.5 1.5", 12),
-      onClick: toggleTheme
+      onClick: function () { openMenu(b); }
     });
     b.className += " z-dock-theme";
     b.setAttribute("data-theme-btn", "");
-    b.title = "switch theme";
+    b.setAttribute("aria-haspopup", "menu");
+    b.title = "Choose, import or design a theme";
     return b;
   }
+
+  // The built-in two, until the console says what else there is.
+  themes.list = [{ id: "dark", name: "Dark", base: "dark", builtin: true },
+                 { id: "light", name: "Light", base: "light", builtin: true }];
+  themes.active = themeNow() === "custom" ? null : themeNow();
 
   root.Zero2WNav = {
     mount: mount, glyph: glyph, screens: screens,
