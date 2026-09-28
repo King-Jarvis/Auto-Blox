@@ -593,10 +593,44 @@ def motor_arm():
                "desc": "1 lets the wheels turn. Anything else stops them."}])
 
 
+def snapshots():
+    return _flow(
+        "ex_snapshot", "A picture a minute, kept and sent",
+        "For an ESP32-CAM with a microSD card in it. Each minute Camera "
+        "capture takes one JPEG — switching the camera on for it and off "
+        "again — and Save to SD writes it to the card, so the board keeps "
+        "its pictures even with the console off. Send to host then passes it "
+        "on, encrypted; the next example keeps it there as well.",
+        [_n("t", "timer.interval", 0, 0, every=60000),
+         _n("c", "camera.capture", 1, 0, frame_size="VGA", format="jpeg"),
+         _n("s", "sd.save", 2, 0, folder="captures", keep=500),
+         _n("h", "picture.send", 3, 0, kind="picture"),
+         _n("l", "log.write", 2, 1, level="ok",
+            message="{{payload}} bytes to {{meta.file}}")],
+        [_e("t", "c"), _e("c", "s"), _e("s", "h"),
+         _e("s", "l", from_side="bottom", to_side="left")],
+        board="esp32cam")
+
+
+def snapshots_kept():
+    return _flow(
+        "ex_snapshot_keep", "Pictures from the field, kept here",
+        "The other half of the last example, on this board. A picture sent "
+        "with Send to host arrives as a Device event of that kind, and Save "
+        "to SD writes it under ~/captures/field.",
+        [_n("t", "host.event", 0, 0, device="", kind="picture"),
+         _n("s", "sd.save", 1, 0, folder="field", keep=1000),
+         _n("l", "log.write", 2, 0, level="ok",
+            message="{{meta.device}}: {{meta.format}} {{meta.width}}x"
+                    "{{meta.height}} to {{meta.file}}")],
+        [_e("t", "s"), _e("s", "l")])
+
+
 CATALOGUE = [blink, button_latch, webhook_to_pin, count_and_act,
              door_left_open, overheat, pump_control, tag_decoupling,
              fill_heat_drain, heartbeat, heartbeat_watch, camera_on_motion, device_round_trip,
-             motor_bench, motor_drive, motor_pad, motor_arm]
+             motor_bench, motor_drive, motor_pad, motor_arm,
+             snapshots, snapshots_kept]
 
 
 def catalogue():

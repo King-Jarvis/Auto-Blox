@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """Load every page in a real browser and report what the console says."""
-import base64
 import json
 import os
 import shutil
-import subprocess
 import sys
-import tempfile
-import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import jsc  # noqa: E402
 
-PAGES = ["/", "/flows", "/iot", "/iot#devices", "/iot#enrollment",
-         "/iot#flashing", "/iot#boards", "/cameras"]
+# Every tab on /iot, in the order iot.js lists them (TABS).
+IOT_HASHES = ["setup", "devices", "bluetooth", "enrollment", "flashing", "boards"]
+IOT_TABS = len(IOT_HASHES)
+PAGES = ["/", "/flows", "/iot"] + ["/iot#" + h for h in IOT_HASHES] + ["/cameras"]
 PHONE = ["/", "/flows", "/iot", "/cameras"]
 PHONE_UA = ("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36")
@@ -33,6 +31,14 @@ PROBE = """
       tab: (document.querySelector('.iot-tab.is-active') || {}).textContent || null,
       widgets: document.querySelectorAll('.z-widget').length,
       overflow: doc.scrollWidth > doc.clientWidth + 1,
+      // A container that clips hides a card running off the edge from the
+      // check above, so cards and widgets are measured themselves.
+      cut: Array.prototype.filter.call(
+        document.querySelectorAll('.flow-card, .z-widget, [class$="-card"], [class*="-card "]'),
+        function (n) {
+          var r = n.getBoundingClientRect();
+          return r.width > 0 && r.right > doc.clientWidth + 1;
+        }).map(function (n) { return n.className.split(' ')[0]; }).slice(0, 5),
       width: doc.scrollWidth + '/' + doc.clientWidth
     };
   })()
@@ -50,59 +56,27 @@ def browser():
 
 
 def run(base, phone, shots):
-    profile = tempfile.mkdtemp(prefix="check-pages-")
-    port = jsc._free_port()
-    argv = [browser(), "--headless=new", "--remote-debugging-port=%d" % port,
-            "--no-first-run", "--disable-gpu", "--hide-scrollbars",
-            "--user-data-dir=" + profile, "about:blank"]
-    if phone:
-        argv[4:4] = ["--window-size=390,844", "--force-device-scale-factor=2",
-                     "--user-agent=" + PHONE_UA]
-    else:
-        argv[4:4] = ["--window-size=1400,1000"]
-    proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL, start_new_session=True)
+    b = jsc.Browser(browser(), phone=phone, width=390 if phone else 1400,
+                    height=844 if phone else 1000,
+                    user_agent=PHONE_UA if phone else None)
     bad = 0
     try:
-        ws = jsc._WS(jsc._wait_for_target(port))
-        seq = [0]
-
-        def call(method, **params):
-            seq[0] += 1
-            ws.send({"id": seq[0], "method": method, "params": params})
-            while True:
-                msg = ws.recv()
-                if msg.get("id") == seq[0]:
-                    if "error" in msg:
-                        raise RuntimeError(msg["error"])
-                    return msg.get("result", {})
-
-        def settle(seconds):
-            """Collect events for a while, then go back to blocking."""
-            out = []
-            end = time.time() + seconds
-            ws.sock.settimeout(0.4)
-            while time.time() < end:
-                try:
-                    msg = ws.recv()
-                except Exception:
-                    continue
-                if "method" in msg:
-                    out.append(msg)
-            ws.sock.settimeout(None)
-            return out
-
-        call("Runtime.enable")
-        call("Log.enable")
-        call("Page.enable")
+        b.call("Runtime.enable")
+        b.call("Log.enable")
+        b.call("Page.enable")
+        # As a phone on the IoT network sees it: no internet, so no webfont,
+        # and the fallback font is wider. Layout bugs hide behind the webfont.
+        b.call("Network.enable")
+        b.call("Network.setBlockedURLs", urls=["*fonts.googleapis.com*",
+                                               "*fonts.gstatic.com*"])
         if phone:
-            call("Emulation.setDeviceMetricsOverride", width=390, height=844,
-                 deviceScaleFactor=2, mobile=True)
+            b.call("Emulation.setDeviceMetricsOverride", width=390, height=844,
+                   deviceScaleFactor=2, mobile=True)
 
         for path in (PHONE if phone else PAGES):
-            call("Page.navigate", url=base + path)
+            b.call("Page.navigate", url=base + path)
             problems = []
-            for ev in settle(7.0 if path == "/cameras" else 4.0):
+            for ev in b.settle(7.0 if path == "/cameras" else 4.0):
                 if ev["method"] == "Runtime.exceptionThrown":
                     det = ev["params"]["exceptionDetails"]
                     problems.append("exception: " + (
@@ -114,29 +88,27 @@ def run(base, phone, shots):
                 elif (ev["method"] == "Log.entryAdded"
                       and ev["params"]["entry"]["level"] == "error"):
                     entry = ev["params"]["entry"]
-                    if "favicon" in (entry.get("url") or ""):
+                    if "favicon" in (entry.get("url") or "") or "fonts.g" in (entry.get("url") or ""):
                         continue
                     problems.append("%s %s" % (entry["text"], entry.get("url") or ""))
 
-            p = call("Runtime.evaluate", returnByValue=True,
-                     expression=PROBE)["result"].get("value") or {}
+            p = b.evaluate(PROBE) or {}
             if not (p.get("nav") or "").startswith(SCREENS):
                 problems.append("the nav is missing or reordered: %r" % p.get("nav"))
             if p.get("overflow"):
                 problems.append("scrolls sideways (%s)" % p.get("width"))
-            if path.startswith("/iot") and p.get("tabs") != 5:
-                problems.append("expected 5 tabs, found %s" % p.get("tabs"))
+            if p.get("cut"):
+                problems.append("runs off the right edge: %s" % ", ".join(p["cut"]))
+            if path.startswith("/iot") and p.get("tabs") != IOT_TABS:
+                problems.append("expected %d tabs, found %s" % (IOT_TABS, p.get("tabs")))
             want = path.partition("#")[2]
             if want and (p.get("tab") or "").lower()[:len(want)] != want:
                 problems.append("#%s did not select its tab (on %r)" % (want, p.get("tab")))
 
             if shots:
-                shot = call("Page.captureScreenshot", format="png",
-                            captureBeyondViewport=True)
                 name = path.replace("/", "_").replace("#", "-") or "_root"
-                with open(os.path.join(shots, "%s%s.png" % (
-                        "phone" if phone else "page", name)), "wb") as fh:
-                    fh.write(base64.b64decode(shot["data"]))
+                b.screenshot(os.path.join(shots, "%s%s.png" % (
+                    "phone" if phone else "page", name)), full=True)
 
             print("%s %-8s %-18s nav=%s active=%s tab=%s widgets=%s"
                   % ("FAIL" if problems else "ok  ",
@@ -146,12 +118,7 @@ def run(base, phone, shots):
                 bad += 1
                 print("      " + line[:300])
     finally:
-        try:
-            os.killpg(os.getpgid(proc.pid), 15)
-            proc.wait(timeout=10)
-        except Exception:
-            pass
-        shutil.rmtree(profile, ignore_errors=True)
+        b.close()
     return bad
 
 

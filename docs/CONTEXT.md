@@ -95,7 +95,8 @@ zero2w_console/          the application package, stdlib only
 design/tokens.json       design tokens, source of truth
 scripts/                 generators (tokens, pinout, boards), the flasher,
                          iot-bringup.py, sim-device.py, check-js.py,
-                         check-pages.py, and the Bluetooth probes:
+                         check-pages.py, demo.py and screenshots.py (the
+                         README's pictures), and the Bluetooth probes:
                          pad-probe.py (host pad), ble-gatt-probe.py (any
                          GATT device), ble-peripheral.py (a board as a GATT
                          target), ble-pad-probe.py (can a board bond a pad)
@@ -850,11 +851,30 @@ Anything that asks "is it alive" says yes. Do not trust that.
   so it is a script rather than part of `unittest discover`:
 
   ```
-  python3 -m zero2w_console --port 8788 --no-auth --no-exec --no-iot-net &
-  python3 scripts/check-pages.py http://127.0.0.1:8788 --shots=/tmp/shots
+  python3 scripts/demo.py --serve        # prints: demo: ready http://127.0.0.1:<port>
+  python3 scripts/check-pages.py http://127.0.0.1:<port> --shots=/tmp/shots
   ```
 
-  It found three real bugs the compile check could not see.
+  It found three real bugs the compile check could not see. Its tab list
+  (`IOT_HASHES`) must match `TABS` in iot.js; `test_demo_world` checks that.
+- **The README's screenshots come from `scripts/demo.py`**, never from this
+  console. The demo is the real server, pages and `agent.py` with every reader
+  of the machine replaced at the function that reads it: `Collector` (name,
+  user, network, processes, mounts), `LogFollower` and `recent_logs`,
+  `run_command` (canned answers, no shell), `iot._run`/`helper`/`scan`/
+  `set_radio`, `gatt._gdbus` and `bluetooth._run`. PATH is narrowed to the gpio
+  tools, openssl and a `hostapd` stand-in, so a reader that was missed fails
+  instead of reading the real thing. Its boards are `agent.py` in child
+  processes with `machine`, `network`, `camera`, `esp32` and `usocket` stood
+  in (`install_micropython`); they enrol, sync, link, reboot for new code and
+  stream the camera over TLS like a board. `scripts/screenshots.py` builds a
+  list of this machine's real identifiers in memory, starts the demo, and
+  deletes any picture whose page text, attributes, response bodies or stream
+  events contain one. Pointed at the live console instead, the same check
+  finds the SSID, MACs, devices and home path — that is how it was proved to
+  be looking. A value the repository itself ships (an example's name, the
+  default subnet, the stock hostname) is excused; tokens, MACs and the home
+  path never are.
 - Chromium headless at a narrow window is **not** a phone. Use a mobile UA and
   `--force-device-scale-factor=2`; real bugs only appeared under that.
 - Flow saves post the **entire document**, so every save is a whole-document
@@ -887,8 +907,8 @@ variables resolving live readings, the dashboard, the studio.
 - Agent updates go **over the air** — six versions were pushed to it without a
   cable.
 
-**The node library, rebuilt.** 51 node types (42 runnable on a device), 50
-variables, 17 examples. `docs/NODE-LIBRARY.md` holds the brief, what is built and
+**The node library, rebuilt.** 53 node types (44 runnable on a device), 50
+variables, 19 examples. `docs/NODE-LIBRARY.md` holds the brief, what is built and
 what is not. Those four counts are checked against the registry by
 `tests/test_docs_agree.py`, because a document that states a number nothing
 verifies is a document that is wrong within the week — which is why the test

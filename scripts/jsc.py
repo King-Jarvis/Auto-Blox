@@ -128,3 +128,78 @@ def _wait_for_target(port, tries=80):
             pass
         time.sleep(0.25)
     raise SystemExit("chromium never exposed a target")
+
+
+class Browser:
+    """One headless Chromium, driven over the DevTools protocol.
+
+    Shared by check-pages.py and screenshots.py: a page loaded, what it said
+    while loading, and a picture of it."""
+
+    def __init__(self, exe, phone=False, width=1400, height=1000, extra=(),
+                 user_agent=None):
+        self.profile = __import__("tempfile").mkdtemp(prefix="auto-blox-chromium-")
+        port = _free_port()
+        argv = [exe, "--headless=new", "--remote-debugging-port=%d" % port,
+                "--no-first-run", "--disable-gpu", "--hide-scrollbars",
+                "--user-data-dir=" + self.profile]
+        if phone:
+            argv += ["--window-size=%d,%d" % (width, height),
+                     "--force-device-scale-factor=2"]
+            if user_agent:
+                argv.append("--user-agent=" + user_agent)
+        else:
+            argv.append("--window-size=%d,%d" % (width, height))
+        argv += list(extra) + ["about:blank"]
+        self.proc = subprocess.Popen(argv, stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL, start_new_session=True)
+        self.ws = _WS(_wait_for_target(port))
+        self.seq = 0
+        self.events = []
+
+    def call(self, method, **params):
+        self.seq += 1
+        self.ws.send({"id": self.seq, "method": method, "params": params})
+        while True:
+            msg = self.ws.recv()
+            if msg.get("id") == self.seq:
+                if "error" in msg:
+                    raise RuntimeError(msg["error"])
+                return msg.get("result", {})
+            if "method" in msg:
+                self.events.append(msg)
+
+    def settle(self, seconds):
+        """Collect events for a while; returns them, and the ones seen before."""
+        end = time.time() + seconds
+        self.ws.sock.settimeout(0.4)
+        while time.time() < end:
+            try:
+                msg = self.ws.recv()
+            except Exception:
+                continue
+            if "method" in msg:
+                self.events.append(msg)
+        self.ws.sock.settimeout(None)
+        out, self.events = self.events, []
+        return out
+
+    def evaluate(self, expression):
+        got = self.call("Runtime.evaluate", returnByValue=True, awaitPromise=True,
+                        expression=expression)
+        return got.get("result", {}).get("value")
+
+    def screenshot(self, path, fmt="png", full=False, **extra):
+        shot = self.call("Page.captureScreenshot", format=fmt,
+                         captureBeyondViewport=full, **extra)
+        with open(path, "wb") as fh:
+            fh.write(base64.b64decode(shot["data"]))
+        return path
+
+    def close(self):
+        try:
+            os.killpg(os.getpgid(self.proc.pid), signal.SIGTERM)
+            self.proc.wait(timeout=10)
+        except Exception:
+            pass
+        __import__("shutil").rmtree(self.profile, ignore_errors=True)

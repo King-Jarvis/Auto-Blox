@@ -19,12 +19,16 @@ from .agent.modules import expr as exprmod
 from .agent.modules.drive import deadband, ramp_toward, split_drive
 from .agent.modules import pad as padmod
 from .agent.modules import tagwatch
+from .agent.modules import pictures as picmod
+from . import pixels
 from . import pad as padmod_host
 from . import bluetooth as btmod
 from . import gatt as gattmod
 from .agent.modules import blefmt
 
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "zero2w-console")
+# Where Save to SD keeps things on this board: its SD card, in plain sight.
+CAPTURES = os.path.join(os.path.expanduser("~"), "captures")
 FLOWS_FILE = os.path.join(CONFIG_DIR, "flows.json")
 
 # The registry. `fields` drive the inspector UI; `inputs`/`outputs` drive ports.
@@ -426,9 +430,15 @@ EMITS = {
     ],
     "camera.feed": PASSES_THROUGH,
     "camera.capture": [
-        _o("payload", "number", "The size of the frame taken, in bytes.", 19200),
+        _o("payload", "number", "The size of the picture taken, in bytes.", 14336),
         _o("meta.frame", "number", "The same size, so a later node can read "
-                                   "it without the payload being in the way.", 19200),
+                                   "it without the payload being in the way.", 14336),
+        _o("meta.format", "text", "jpeg, grayscale or rgb565.", "jpeg"),
+    ],
+    "picture.send": PASSES_THROUGH,
+    "sd.save": [
+        _o("payload", "same", "Whatever arrived, unchanged."),
+        _o("meta.file", "text", "Where it was saved.", "/sd/captures/20260928-141503-001.jpg"),
     ],
     "camera.publish": PASSES_THROUGH,
     "log.write": PASSES_THROUGH,
@@ -1323,6 +1333,9 @@ REGISTRY = {
             "including the events it raises on its own.",
             "Choose a **group** instead of a device and it fires for any "
             "member; {{meta.device}} says which one it was.",
+            "A picture from **Send to host** arrives as its kind — *picture* "
+            "unless you changed it — carrying the picture, so a **Save to SD** "
+            "after this keeps it on this board's card.",
         ],
         "fields": [
             _f("device", "Device", "combo", default="", options_from="devices",
@@ -1366,7 +1379,7 @@ REGISTRY = {
                options=["QQVGA", "QVGA", "HVGA", "CIF", "VGA"],
                showIf={"op": ["camera-on"]}),
             _f("format", "Picture", "select", default="colour",
-               options=["colour", "greyscale"], showIf={"op": ["camera-on"]}),
+               options=["colour", "greyscale", "jpeg"], showIf={"op": ["camera-on"]}),
         ],
     },
     "pad.link": {
@@ -1563,23 +1576,79 @@ REGISTRY = {
     "camera.capture": {
         "label": "Camera capture", "group": "Actions", "kind": "action", "runs": "device",
         "series": "series-4", "glyph": "eye",
-        "summary": "Takes one frame when a message arrives.",
+        "summary": "Takes one picture when a message arrives.",
         "inputs": ["in"], "outputs": ["out"],
         "docs": [
-            "One frame per message, which is how you take a picture on an edge, "
-            "on a schedule, or when something else in the flow decides. **It is "
+            "One picture per message, which is how you take one on an edge, on "
+            "a schedule, or when something else in the flow decides. **It is "
             "not needed for the live view** — Camera feed does that on its own.",
-            "The payload becomes the size of the frame in bytes, and "
-            "{{meta.frame}} holds it too, so the next node can log it or act on "
-            "it. The picture itself stays on the device until the console asks "
-            "for it — a field device should not post pictures nobody wanted.",
-            "It needs the camera to be running, which Camera feed is what does. "
-            "Wiring one into the other is allowed but means nothing: the feed "
-            "passes the message along, it does not produce frames for this node.",
+            "The picture travels on with the message, so a **Save to SD** or a "
+            "**Send to host** after this has something to keep or send. The "
+            "payload is its size in bytes (so is {{meta.frame}}), and "
+            "{{meta.format}} says what it is, so a Log after this prints a "
+            "number rather than the picture.",
+            "With the camera off, it switches on at this size and format for "
+            "the one picture and off again. With a **Camera feed** already "
+            "running, the picture comes at the feed's size and format "
+            "instead: one sensor, one setting at a time.",
         ],
         "fields": [
             _f("frame_size", "Frame size", "select", default="QQVGA",
                options=["QQVGA", "QVGA", "HVGA", "CIF", "VGA"]),
+            _f("format", "Picture", "select", default="jpeg",
+               options=["colour", "greyscale", "jpeg"],
+               help="jpeg is full colour and a fraction of the size, which is "
+                    "what makes a picture small enough to send or keep. It "
+                    "needs the camera firmware the flasher installs."),
+        ],
+    },
+    "picture.send": {
+        "label": "Send to host", "group": "Actions", "kind": "action", "runs": "device",
+        "series": "series-1", "glyph": "up",
+        "summary": "Sends the picture in the message to this board.",
+        "inputs": ["in"], "outputs": ["out"],
+        "docs": [
+            "Put this after a **Camera capture**. The picture goes to the "
+            "console **encrypted**, over the same TLS stream as the live view "
+            "— opened for the send if the camera has none, and closed again "
+            "once nothing has gone for a while. The first can take a second or "
+            "two while that stream is set up.",
+            "Here it arrives as a **Device event** of this kind. A flow that "
+            "starts from one can keep it with **Save to SD**.",
+            "A picture must fit in one frame, 64 KB: a JPEG does at any size "
+            "here, an uncompressed one only at the smallest. One waits to go at "
+            "a time; a newer one replaces it.",
+        ],
+        "fields": [
+            _f("kind", "Kind", "text", default="picture",
+               help="What the Device event on the host matches on."),
+        ],
+    },
+    "sd.save": {
+        "label": "Save to SD", "group": "Actions", "kind": "action", "runs": "both",
+        "series": "series-2", "glyph": "down",
+        "summary": "Keeps the picture in the message on an SD card.",
+        "inputs": ["in"], "outputs": ["out"],
+        "docs": [
+            "On a board it writes to the board's own **microSD card**; on this "
+            "board, to its SD card under `~/captures`. Each picture is a file "
+            "named for when it was taken, in the folder named here, and "
+            "{{meta.file}} says where it went.",
+            "A message with no picture is kept too: its payload becomes one "
+            "line of `log.txt` in the same folder, so a reading can be logged "
+            "the same way.",
+            "**Keep** is how many pictures the folder holds before the oldest "
+            "go, so a card does not fill. On this board a raw picture is saved "
+            "as a PNG; on a board it stays raw, with its size in its name.",
+            "A board's clock is set by the console when it first streams, so a "
+            "board that has never reached the console names its files from "
+            "2000-01-01.",
+        ],
+        "fields": [
+            _f("folder", "Folder", "text", default="captures",
+               help="Letters, digits, - and _."),
+            _f("keep", "Keep", "number", default=200, min=0, max=100000,
+               help="The newest this many pictures. 0 keeps them all."),
         ],
     },
     "log.write": {
@@ -1677,7 +1746,7 @@ VARIABLES = [
      "desc": "1 while a controller is connected, 0 when none is."},
 
     # -- board ------------------------------------------------------------
-    {"name": "host", "group": "Board", "example": "orangepizero2w",
+    {"name": "host", "group": "Board", "example": "auto-blox",
      "desc": "Hostname of this board."},
     {"name": "time", "group": "Board", "example": "14:02:31", "desc": "Local time, HH:MM:SS."},
     {"name": "date", "group": "Board", "example": "2026-09-19", "desc": "Local date, YYYY-MM-DD."},
@@ -1799,6 +1868,14 @@ def variables_with_values(snapshot=None, tags=None, devices=None):
                 "example": "", "value": _fmt(resolve_variable(name, msg, ctx)),
             })
     return out
+
+
+def _as_png(pic, name):
+    """A raw frame saved here becomes a PNG anyone can open; a JPEG stays one."""
+    if pic.get("format") == "jpeg":
+        return pic["data"], name
+    png = pixels.frame_to_png(pic["data"], pic["width"], pic["height"], pic["format"])
+    return png, name.rsplit("-", 2)[0] + ".png"
 
 
 def _fmt(v):
@@ -2300,8 +2377,10 @@ class FlowEngine:
             fired += 1
         return fired
 
-    def fire_device_event(self, device_id, kind, payload=None, message=None):
-        """A device reported something; start any flow waiting on it."""
+    def fire_device_event(self, device_id, kind, payload=None, message=None,
+                          picture=None):
+        """A device reported something; start any flow waiting on it. A
+        picture from Send to host rides beside the payload, as it did there."""
         fired = 0
         with self.lock:
             flows_now = list(self.doc.get("flows", []))
@@ -2321,11 +2400,15 @@ class FlowEngine:
                     continue
                 if want_kind and want_kind != kind:
                     continue
-                self.fire((flow["id"], node["id"]), {
-                    "payload": payload,
-                    "meta": {"device": device_id, "kind": kind,
-                             "message": message},
-                })
+                msg = {"payload": payload,
+                       "meta": {"device": device_id, "kind": kind,
+                                "message": message}}
+                if picture:
+                    msg["picture"] = picture
+                    msg["meta"].update(format=picture.get("format"),
+                                       width=picture.get("width"),
+                                       height=picture.get("height"))
+                self.fire((flow["id"], node["id"]), msg)
                 fired += 1
         return fired
 
@@ -2545,6 +2628,11 @@ class FlowEngine:
             if t == "log.write":
                 self._emit(fid, nid, cfg.get("level", "ok"), str(render(cfg.get("message", ""), msg, ctx)))
                 return "out", msg
+            if t == "sd.save":
+                path = picmod.save(CAPTURES, cfg, msg, convert=_as_png)
+                out = dict(msg)
+                out["meta"] = dict(msg.get("meta") or {}, file=path)
+                return "out", out
         except Exception as exc:
             self._emit(fid, nid, "critical", "%s failed: %s" % (t, exc))
             return "out", None

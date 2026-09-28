@@ -1,7 +1,7 @@
 # Node library — the redesign brief
 
 **Status: the library is built; the open design questions in §4 are not.**
-51 node types, 42 of them runnable on a device, 50 variables, 17 examples —
+53 node types, 44 of them runnable on a device, 50 variables, 19 examples —
 counts checked against the registry by `tests/test_docs_agree.py`. Read
 `docs/ARCHITECTURE.md` and then `CONTEXT.md`; this assumes their conventions
 and constraints.
@@ -29,7 +29,7 @@ and constraints.
   field can read as `{{tag.name}}`, with a `tag.change` trigger. This is what
   lets flows compose without being wired together, and it is the thing the
   examples lean on hardest.
-- **17 examples** (`examples.py`), built in code and checked against the
+- **19 examples** (`examples.py`), built in code and checked against the
   registry by a test, added switched off. Four of them are the motor set —
   bench, arm, two-wheel drive and drive-from-a-controller — which compose
   through `drive_armed` rather than through wires.

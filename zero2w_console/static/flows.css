@@ -480,14 +480,19 @@ body.view-editor .index-view { display: none; }
   outline: var(--stroke-focus) solid var(--focus-ring); outline-offset: var(--space-0\.5);
 }
 
-.flow-list { display: grid; gap: var(--space-3); }
+/* minmax(0, 1fr), not the default auto: a grid track grows to its widest
+   unbreakable line, and a card's title is nowrap. A long name then pushed
+   every card past a phone's edge instead of ending in its ellipsis — hidden
+   by the webfont's narrower metrics, shown by the fallback a phone on the IoT
+   network (no internet, so no webfont) gets. */
+.flow-list { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
 .flow-card {
   background: var(--surface-100);
   border: var(--stroke-hairline) solid var(--hairline);
   border-left: 3px solid var(--hairline-strong);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  display: grid; gap: var(--space-2);
+  display: grid; gap: var(--space-2); grid-template-columns: minmax(0, 1fr);
 }
 .flow-card.is-clickable { cursor: pointer; }
 .flow-card.is-clickable:hover {

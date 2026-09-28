@@ -16,11 +16,12 @@ PULLED = {
     "pad.link": "pad", "pad.axis": "pad", "pad.button": "pad",
     "tag.change": "tagwatch", "logic.step": "steps",
     "ble.link": "ble", "ble.read": "ble", "ble.write": "ble", "ble.notify": "ble",
+    "picture.send": "pictures", "sd.save": "pictures",
 }
 
 # Types whose module also wants a call every tick, as `poll(runner)`.
 POLLED = ("tag.change", "logic.step", "ble.link", "ble.read", "ble.write",
-          "ble.notify")
+          "ble.notify", "picture.send")
 
 
 def ticks():
@@ -688,17 +689,22 @@ class Runner:
         self._emit(node_id, msg, hops)
 
     def _do_camera_capture(self, node_id, cfg, msg, hops):
-        cam = getattr(self.agent, "camera", None)
+        cam = _load("modules.camera")
         out = dict(msg)
-        if not cam:
-            self.agent.log("warn", "no camera on this device", node=node_id)
+        try:
+            cam.agent = self.agent
+            pic = cam.still(cfg.get("frame_size"), cfg.get("format"))
+        except Exception as exc:
+            self.agent.log("warn", "no picture: %s" % exc, node=node_id)
             return self._emit(node_id, out, hops)
-        frame = cam.capture()
-        size = len(frame) if frame else 0
+        size = len(pic["data"] or b"")
         out["payload"] = size
         meta = dict(out.get("meta") or {})
         meta["frame"] = size
+        meta["format"] = pic["format"]
         out["meta"] = meta
+        if size:
+            out["picture"] = pic
         self._emit(node_id, out, hops)
 
     def _do_http_request(self, node_id, cfg, msg, hops):

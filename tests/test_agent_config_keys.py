@@ -55,8 +55,6 @@ KNOWN_GAPS = {
     # The host formats the bytes it read; a device hands back raw, so the
     # payload's shape depends on where the flow runs.
     ("i2c.read", "format"),
-    # A still is taken at whatever size the feed is already running.
-    ("camera.capture", "frame_size"),
     # Device requests go out with no extra headers, so anything needing an
     # API key works here and not there.
     ("http.request", "headers"),

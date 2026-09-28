@@ -64,35 +64,41 @@ def _mounting():
     return 0, False
 
 
+def _sensor(frame_size=None, fmt=None, turn=0, mirror=False):
+    """The sensor itself, at this size and format; nothing sent anywhere."""
+    global _cam, _format
+    kw = {}
+    if frame_size:
+        size = getattr(_camera.FrameSize, str(frame_size).upper(), None)
+        if size is not None:
+            kw["frame_size"] = size
+    fmt = str(fmt or "").lower()
+    if fmt == "jpeg":
+        kw["pixel_format"] = _camera.PixelFormat.JPEG
+        kw["jpeg_quality"] = 12
+        kw["fb_count"] = 2
+        # The newest frame, not the oldest queued: a stream wants now.
+        kw["grab_mode"] = _camera.GrabMode.LATEST
+        _format = "jpeg"
+    elif fmt in ("grey", "gray", "greyscale", "grayscale"):
+        kw["pixel_format"] = _camera.PixelFormat.GRAYSCALE
+        _format = "grayscale"
+    else:
+        _format = "rgb565"
+    _cam = _camera.Camera(**kw)
+    _cam.init()
+    if _format == "jpeg":
+        if not turn and not mirror:
+            turn, mirror = _mounting()
+        _orient(turn, mirror)
+    _cam.capture()          # the first frame off this sensor is often dark
+
+
 def start(port=PORT, frame_size=None, fmt=None, turn=0, mirror=False):
     """Bring the sensor up, then the stream or, failing that, the socket."""
-    global _cam, _srv, _stream, _last_error, _format
+    global _srv, _stream, _last_error
     if _cam is None:
-        kw = {}
-        if frame_size:
-            size = getattr(_camera.FrameSize, str(frame_size).upper(), None)
-            if size is not None:
-                kw["frame_size"] = size
-        fmt = str(fmt or "").lower()
-        if fmt == "jpeg":
-            kw["pixel_format"] = _camera.PixelFormat.JPEG
-            kw["jpeg_quality"] = 12
-            kw["fb_count"] = 2
-            # The newest frame, not the oldest queued: a stream wants now.
-            kw["grab_mode"] = _camera.GrabMode.LATEST
-            _format = "jpeg"
-        elif fmt in ("grey", "gray", "greyscale", "grayscale"):
-            kw["pixel_format"] = _camera.PixelFormat.GRAYSCALE
-            _format = "grayscale"
-        else:
-            _format = "rgb565"
-        _cam = _camera.Camera(**kw)
-        _cam.init()
-        if _format == "jpeg":
-            if not turn and not mirror:
-                turn, mirror = _mounting()
-            _orient(turn, mirror)
-        _cam.capture()          # the first frame off this sensor is often dark
+        _sensor(frame_size, fmt, turn, mirror)
     if _stream is None and _srv is None:
         _stream = _open_stream()
     if _stream is None and _srv is None:
@@ -103,6 +109,27 @@ def start(port=PORT, frame_size=None, fmt=None, turn=0, mirror=False):
         _srv.setblocking(False)
     _last_error = None
     return info()
+
+
+def still(frame_size=None, fmt=None):
+    """One picture for Camera capture, as the message carries it: from the
+    running camera as it is, or from one brought up at this size and format
+    for the frame and switched off again, so a capture never leaves the sensor
+    holding RAM."""
+    global _cam
+    was = _cam is not None
+    if not was:
+        _sensor(frame_size, fmt)
+    try:
+        return {"data": _cam.capture(), "format": _format,
+                "width": _cam.get_pixel_width(), "height": _cam.get_pixel_height()}
+    finally:
+        if not was:
+            try:
+                _cam.deinit()
+            except Exception:
+                pass
+            _cam = None
 
 
 def _open_stream():

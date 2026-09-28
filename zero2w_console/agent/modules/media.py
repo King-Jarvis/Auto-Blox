@@ -86,6 +86,18 @@ class Stream(lc.Client):
         self._flush()
         return True
 
+    def send_still(self, kind, fmt, width, height, frame):
+        """One picture a flow chose to send, as STILL: ">BHHB", then the kind
+        a Device event matches on, then the picture."""
+        k = str(kind).encode()[:32]
+        body = struct.pack(">BHHB", FORMATS[fmt], width, height, len(k)) + k + bytes(frame)
+        if len(body) > wire.MAX_BODY:
+            return False
+        self.outbox = self.channel.send(wire.STILL, body)
+        self.sent = 0
+        self._flush()
+        return True
+
     # -- the link client, over TLS -------------------------------------------
     def _dial(self):
         self.wrapped = False

@@ -133,10 +133,14 @@ NODE_MODULES = {
     "pad.link": "pad", "pad.axis": "pad", "pad.button": "pad",
     "tag.change": "tagwatch", "logic.step": "steps",
     "ble.link": "ble", "ble.read": "ble", "ble.write": "ble", "ble.notify": "ble",
+    "picture.send": "pictures", "sd.save": "pictures",
 }
 
 # Modules another module imports, sent with it.
-MODULE_NEEDS = {"ble": ("blefmt",)}
+MODULE_NEEDS = {"ble": ("blefmt",),
+                # Send to host dials the encrypted stream itself when the
+                # camera has none open.
+                "pictures": ("link", "linkclient", "media")}
 
 # The picture stream. A lease is how long one look keeps a board sending; a
 # viewer waits this long for the first picture before being told there is none.
@@ -615,6 +619,8 @@ class Fleet:
         if getattr(conn, "role", "link") == "stream":
             if kind == wire.MEDIA:
                 self._streamed(device, body)
+            elif kind == wire.STILL:
+                self.still(device, body)
             return
         try:
             doc = json.loads(body.decode()) if body else {}
@@ -1002,6 +1008,31 @@ class Fleet:
         with self.frame_arrived:
             self.frames[device["id"]] = got
             self.frame_arrived.notify_all()
+
+    def still(self, device, body):
+        """A picture a flow on the board chose to send (Send to host): into the
+        run log, and to any Device event flow waiting on its kind. Returns the
+        picture, or None for a frame that does not parse."""
+        if len(body) < MEDIA_HEAD + 1:
+            return None
+        code, width, height, klen = struct.unpack(">BHHB", body[:MEDIA_HEAD + 1])
+        fmt = MEDIA_FORMATS.get(code)
+        start = MEDIA_HEAD + 1 + klen
+        if fmt is None or len(body) <= start:
+            return None
+        kind = body[MEDIA_HEAD + 1:start].decode("utf-8", "replace") or "picture"
+        pic = {"data": bytes(body[start:]), "format": fmt,
+               "width": width, "height": height}
+        size = len(pic["data"])
+        message = "%s %dx%d, %.1f KB" % (fmt, width, height, size / 1024.0)
+        self._emit(device, "ok", "picture: " + message, kind=kind, payload=size)
+        if self.engine:
+            try:
+                self.engine.fire_device_event(device["id"], kind, size, message,
+                                              picture=pic)
+            except Exception as exc:
+                self._emit(device, "warn", "picture did not reach a flow: %s" % exc)
+        return pic
 
     def _lease(self, device, stream):
         """Keep the board streaming while someone is looking, and no longer."""

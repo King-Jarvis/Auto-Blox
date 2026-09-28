@@ -67,7 +67,7 @@ State lives in `~/.config/zero2w-console/` — `flows.json`, `iot.json`,
 A flow is JSON: `{id, name, enabled, board?, device?, nodes[], edges[]}`. A node
 is `{id, type, config, x, y}`. `flows.REGISTRY` is the single source of truth for
 what a node type is — its fields, what it emits, whether it can run on a device.
-**51 node types, 42 of them runnable on a device, 50 variables, 17 examples.**
+**53 node types, 44 of them runnable on a device, 50 variables, 19 examples.**
 
 A message is `{"payload": ..., "meta": {...}}`. Nodes pass messages along edges;
 `{{payload}}`, `{{meta.x}}` and `{{tag.name}}` are rendered in any field.

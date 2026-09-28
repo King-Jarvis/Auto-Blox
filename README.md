@@ -17,6 +17,8 @@ a 3D-printed box, with its ESP32 field devices boxed up beside it.
 
 Python 3 standard library only: no Node, no pip, no build step.
 
+![The motor flow in the Flow Studio, with the ESP32 running it reporting its pins live](docs/screenshots/flow-live.png)
+
 **What you need:** an Orange Pi Zero 2W running Armbian (or another
 Debian/Ubuntu image) with Python 3. ESP32 boards are optional.
 
@@ -27,6 +29,33 @@ it:** the terminal is a real shell behind one token.
 parts fit together; [docs/CONTEXT.md](docs/CONTEXT.md) is every decision and
 trap in detail. This file is the operational side: how to run it, what each
 screen does, and what it cannot do.
+
+## Screens
+
+| | |
+|---|---|
+| ![Overview](docs/screenshots/overview.png) **Overview** — the board's health, network, live journal and a terminal. | ![Flow list](docs/screenshots/flows.png) **Flows** — every flow, where it runs, and whether it is on. |
+| ![Flow editor](docs/screenshots/flow-editor.png) **Flow editor** — nodes, links and each node's own documentation. | ![Variables](docs/screenshots/flow-variables.png) **Variables** — what a node was handed and the library of `{{tokens}}`. |
+| ![IoT setup](docs/screenshots/iot-setup.png) **IoT setup** — radio, network, enrolment, boards and flows, in order. | ![Devices](docs/screenshots/iot-devices.png) **Devices** — the ESP32 boards on the network. |
+| ![A device](docs/screenshots/iot-device.png) **A device** — what it is, where it is, what it runs. | ![Bluetooth](docs/screenshots/iot-bluetooth.png) **Bluetooth** — the host's adapter, controllers and BLE devices. |
+| ![Enrollment](docs/screenshots/iot-enrollment.png) **Enrollment** — the window a new board joins through. | ![Flashing](docs/screenshots/iot-flashing.png) **Flashing** — firmware and agent onto a board over USB. |
+| ![Boards](docs/screenshots/iot-boards.png) **Boards** — the ESP32 profiles a flow can target. | ![Cameras](docs/screenshots/cameras.png) **Cameras** — pictures from ESP32-CAMs, streamed over TLS. |
+
+On a phone:
+
+<p>
+<img src="docs/screenshots/phone-overview.png" width="190" alt="Overview on a phone">
+<img src="docs/screenshots/phone-flows.png" width="190" alt="Flows on a phone">
+<img src="docs/screenshots/phone-iot.png" width="190" alt="Devices on a phone">
+<img src="docs/screenshots/phone-cameras.png" width="190" alt="Cameras on a phone">
+</p>
+
+These are the real console and the real ESP32 agent, showing a machine that
+does not exist: `scripts/demo.py` runs them with the host's name, network,
+radio, Bluetooth and journal made up, and its boards are `agent.py` itself,
+running on the same machine with MicroPython's hardware stood in for.
+`scripts/screenshots.py` retakes every picture and deletes any that contains
+an identifier of the machine it ran on.
 
 ## Install
 
@@ -182,7 +211,7 @@ so adding a node type there adds it to the UI too.
 | Triggers | GPIO edge · Interval · Webhook · Metric threshold · Manual · MQTT subscribe · Tag change · Device event · BLE notify |
 | Logic | If · Delay · Throttle · Toggle · Set value · Write tag · Read tag · Controller axis · Controller button · Timer · On change · Counter · Hysteresis · Latch · Step · Watchdog |
 | Maths | Formula · Scale · Smooth · Dead zone · Ramp · Sign split |
-| Actions | GPIO write · PWM output · I2C write · I2C read · I2C scan · SPI transfer · MQTT publish · Call flow · HTTP request · Shell command · Tell the host · Device command · Controller · BLE device · BLE read · BLE write · Camera feed · Camera to screen · Camera capture · Log |
+| Actions | GPIO write · PWM output · I2C write · I2C read · I2C scan · SPI transfer · MQTT publish · Call flow · HTTP request · Shell command · Tell the host · Device command · Controller · BLE device · BLE read · BLE write · Camera feed · Camera to screen · Camera capture · Send to host · Save to SD · Log |
 
 Each node's own help is in the inspector; `docs/NODE-LIBRARY.md` covers the
 design. **Toggle** has two inputs, each set to flip, force on or force off — one
@@ -461,6 +490,9 @@ scripts/build_overlays.py       this board's overlays + device tree -> data/over
 scripts/iot-flash.py            flash a board and hand it its identity
 scripts/iot-bringup.py          network up, flash, deploy, watch
 scripts/sim-device.py           a fake device speaking the real protocol
+scripts/demo.py                 a made-up install: the real console and agent,
+                                an invented machine (for looking around)
+scripts/screenshots.py          docs/screenshots from the demo, leak-checked
 scripts/build-mpy-cross.sh      builds the compiler that makes device .mpy files
 scripts/check-js.py|check-pages.py  compile the JS / load every page in a browser
 scripts/*probe*.py, ble-*.py    Bluetooth probes (see Bluetooth below)
@@ -727,7 +759,16 @@ message reaches it:
 | --- | --- |
 | **Camera feed** | a switch for the sensor: a truthy message starts it at the node's size and format, a falsy one stops it. An **Interval** wired in keeps it on; unwired, it never runs |
 | **Camera to screen** | wired after a feed, puts the device on the Cameras screen and the dashboard, and sets how often a frame is asked for |
-| **Camera capture** | takes one frame per message, for a picture on an edge or on a schedule. Not needed for the live view |
+| **Camera capture** | takes one picture per message, for a picture on an edge or on a schedule, at its own size and format (jpeg by default) when the camera is off. The picture travels on with the message. Not needed for the live view |
+| **Send to host** | sends the picture in the message to the console, encrypted, over the same TLS stream as the live view. It arrives as a **Device event** of the node's kind (`picture`) |
+| **Save to SD** | on a board, writes the picture to the board's own microSD card; on the console, to `~/captures`. One file per picture, named for when it was taken, oldest removed past **Keep**. A message with no picture appends its payload to `log.txt` instead |
+
+A picture a minute, kept on the camera's card and on the console, is two of the
+examples: **A picture a minute, kept and sent** on the ESP32-CAM, and
+**Pictures from the field, kept here** on the console. A picture has to fit in
+one link frame (64 KB), which a JPEG does at every size here and a raw picture
+only at the smallest. On an ESP32-CAM the card is used in one-bit mode, which
+leaves GPIO4 (the flash LED) and GPIO12 alone.
 
 **Use jpeg.** Set the Camera feed node's *Picture* to `jpeg`: the camera
 compresses on the board, and a 640×480 colour picture is 7–17 KB. The raw
